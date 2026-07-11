@@ -1,9 +1,11 @@
 /**
- * أنواع قاعدة البيانات — مكتوبة يدوياً لتطابق supabase/migrations/0001_initial_schema.sql.
+ * أنواع قاعدة البيانات — مكتوبة يدوياً وتم التحقق من تطابقها مع المخطط الحيّ
+ * المطبَّق على مشروع Supabase (jtcrobllzrrvsodmtspp) عبر `generate_typescript_types`.
  *
- * TODO(db-types): بعد تطبيق المخطط على مشروع Supabase مخصّص، يُفضّل توليد هذا
- * الملف آلياً عبر `supabase gen types typescript` لضمان التطابق الدقيق، واستبدال
- * هذه النسخة اليدوية به.
+ * نُبقيها يدوية عن قصد لأنها أدقّ من المولّدة آلياً: الأعمدة النصية ذات قيود CHECK
+ * (track, reward_system, status, task_type, skill_type, difficulty, source)
+ * مُمثَّلة هنا كأنواع اتحاد (union) صارمة بدل `string` عام — يستفيد منها كود الواجهة.
+ * عند أي تغيير بالمخطط لاحقاً، حدّث هذا الملف مقابله.
  */
 
 export type Track = "scientific" | "literary";

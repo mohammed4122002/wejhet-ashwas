@@ -287,8 +287,11 @@ cross join units un;
 -- ============================================================================
 
 -- 1) تحديث updated_at تلقائياً على الجداول المحلية القابلة للكتابة (دعم المزامنة)
+--    search_path مثبّت وEXECUTE محجوب عن الـAPI (تحصين أمني).
 create or replace function set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;
@@ -318,3 +321,7 @@ $$;
 create trigger trg_profile_created
   after insert on profiles
   for each row execute function handle_new_profile();
+
+-- منع استدعاء دوال المحفّزات كـ RPC عبر الـAPI (المحفّزات تعمل بغض النظر عن هذا).
+revoke execute on function set_updated_at() from public, anon, authenticated;
+revoke execute on function handle_new_profile() from public, anon, authenticated;

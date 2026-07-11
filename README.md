@@ -37,13 +37,13 @@ npx tsc --noEmit     # فحص TypeScript الصارم
 `supabase/migrations/0001_initial_schema.sql`
 وبيانات المنهج البذرية بـ `supabase/seed.sql`.
 
-**لم يُطبَّق بعد على مشروع Supabase حي** (بقرار: قاعدة البيانات تُطبَّق لاحقاً).
-للتطبيق على مشروع مخصّص لوجهة أشوس:
+**مُطبَّق فعلياً** على مشروع Supabase المخصّص لوجهة أشوس: 18 جدول، 20 سياسة RLS
+(RLS مفعّل على كل جدول بلا استثناء)، الخريطة الحرارية كـview، وبيانات بذرية
+(3 مواد / 8 وحدات / 18 درس). مدقّق أمان Supabase: صفر تنبيهات.
 
-1. أنشئ مشروع Supabase جديد (أو استخدم مشروعاً فارغاً مخصّصاً).
-2. شغّل محتوى `0001_initial_schema.sql` ثم `seed.sql` من SQL Editor
-   (أو عبر `supabase db push` إذا استخدمت الـCLI).
-3. عبّي `.env.local` بـ `NEXT_PUBLIC_SUPABASE_URL` و `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+لإعادة التطبيق على مشروع آخر: شغّل `0001_initial_schema.sql` ثم `seed.sql` من
+SQL Editor، وعبّي `.env.local` بـ `NEXT_PUBLIC_SUPABASE_URL` و
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` (المفاتيح المحلية مُستثناة من git).
 
 ## بنية المجلدات
 

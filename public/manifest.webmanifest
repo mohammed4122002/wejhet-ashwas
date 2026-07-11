@@ -1,0 +1,19 @@
+{
+  "name": "وجهة أشوس",
+  "short_name": "وجهة أشوس",
+  "description": "رفيق طالب التوجيهي الفلسطيني",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#150B0F",
+  "theme_color": "#150B0F",
+  "icons": [
+    {
+      "src": "/brand/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * متغيّرات CSS — نسخة طبق الأصل من design.md §2.
+ * تُستخدم للأماكن اللي ما بتقدر توكنز Tailwind توصلها مباشرة
+ * (SVG خرائط المكافأة، shadcn/ui، تدرّجات مخصّصة).
+ * التطبيق كله Dark Mode دائماً — لا يوجد وضع فاتح بالـMVP.
+ */
+:root {
+  /* خلفيات */
+  --bg-base: #150b0f;
+  --bg-surface: #221219;
+  --bg-surface-raised: #2e1820;
+  --bg-overlay: rgba(21, 11, 15, 0.85);
+
+  /* التدرّج الأساسي (هوية العلامة) */
+  --brand-500: #e0603f;
+  --brand-600: #c6472c;
+  --brand-400: #f08157;
+  --brand-glow: #fbc79a;
+
+  /* النحاسي/الذهبي */
+  --accent-copper: #d97757;
+  --accent-gold: #e0a868;
+
+  /* نصوص */
+  --text-primary: #f5ede8;
+  --text-secondary: #b8a79e;
+  --text-muted: #7a6b64;
+  --text-on-brand: #150b0f;
+
+  /* حالات دلالية (Kanban) */
+  --status-todo: #7a6b64;
+  --status-in-progress: #e0603f;
+  --status-done: #4caf7d;
+
+  /* حدود وفواصل */
+  --border-subtle: rgba(245, 237, 232, 0.08);
+  --border-strong: rgba(245, 237, 232, 0.16);
+
+  /* توهّج */
+  --glow-brand: 0 0 24px rgba(224, 96, 63, 0.35);
+  --glow-success: 0 0 20px rgba(76, 175, 125, 0.3);
+}
+
+@layer base {
+  html {
+    background-color: var(--bg-base);
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-plex-arabic), system-ui, sans-serif;
+    /* الأرقام الغربية (0-9) بكل الواجهة — design.md §3 */
+    font-variant-numeric: lining-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* حقول الإدخال ترث الاتجاه RTL طبيعياً */
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+  }
+
+  /* شريط تمرير هادئ يتماشى مع الطابع الغامق */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-base);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--bg-surface-raised);
+    border-radius: 999px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* توهّج جاهز للاستخدام بلحظات المكافأة والبومودورو */
+  .glow-brand {
+    box-shadow: var(--glow-brand);
+  }
+  .glow-success {
+    box-shadow: var(--glow-success);
+  }
+}

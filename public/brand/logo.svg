@@ -1,0 +1,41 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="وجهة أشوس">
+  <!--
+    شعار مؤقّت (placeholder) — design.md §1 و §7.
+    الشكل: هلال/قوس نحاسي محيط بكوكب متوهّج بتدرّج أحمر-برتقالي + طريق نحو الأفق + نجمة.
+    يُستبدل بملف الشعار الأصلي عالي الدقة أول ما يتوفر بـ public/brand/logo.svg.
+    كل الألوان من توكنز design.md — لا قيم حرة خارجها.
+  -->
+  <defs>
+    <radialGradient id="planet" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#FBC79A" />
+      <stop offset="45%" stop-color="#F08157" />
+      <stop offset="100%" stop-color="#C6472C" />
+    </radialGradient>
+    <linearGradient id="road" x1="50%" y1="55%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FBC79A" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#E0603F" stop-opacity="0.15" />
+    </linearGradient>
+  </defs>
+
+  <!-- القوس النحاسي المحيط (هلال/دلالة وجهة) -->
+  <path
+    d="M64 10 a54 54 0 1 0 38 92"
+    fill="none"
+    stroke="#D97757"
+    stroke-width="6"
+    stroke-linecap="round"
+  />
+
+  <!-- الكوكب المتوهّج -->
+  <circle cx="64" cy="58" r="30" fill="url(#planet)" />
+
+  <!-- الطريق نحو الأفق تحت الكوكب -->
+  <path d="M52 84 L44 116 L84 116 L76 84 Z" fill="url(#road)" />
+  <line x1="64" y1="88" x2="64" y2="114" stroke="#150B0F" stroke-width="2" stroke-dasharray="4 5" opacity="0.5" />
+
+  <!-- نجمة الإضاءة عند الطرف العلوي -->
+  <path
+    d="M96 26 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 Z"
+    fill="#FBC79A"
+  />
+</svg>

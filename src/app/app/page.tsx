@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { BookOpen, Compass } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +11,13 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // دفاع في العمق: middleware يفترض يمنع الوصول بدون جلسة، لكن لا نعتمد عليه وحده.
+  if (!user) redirect("/login");
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("track, reward_system")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .maybeSingle();
 
   // مواد الطالب = المشتركة + مواد فرعه (RLS يسمح بالقراءة العامة للمنهج)

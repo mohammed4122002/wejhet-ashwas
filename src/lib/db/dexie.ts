@@ -27,6 +27,11 @@ export type LocalMockExamAttempt = Tables["mock_exam_attempts"]["Row"];
 export type LocalQuestionItem = Tables["question_bank_items"]["Row"];
 export type LocalMockExam = Tables["mock_exams"]["Row"];
 
+/** المنهج (subjects/units/lessons) — يُخزّن محلياً ليعمل الجدول والتقدّم بدون نت. */
+export type LocalSubject = Tables["subjects"]["Row"];
+export type LocalUnit = Tables["units"]["Row"];
+export type LocalLesson = Tables["lessons"]["Row"];
+
 /** عملية بانتظار المزامنة مع Supabase. */
 export type SyncOp = "insert" | "update" | "delete" | "upsert";
 
@@ -55,6 +60,11 @@ export class WejhetDB extends Dexie {
   question_bank_items!: Table<LocalQuestionItem, string>;
   mock_exams!: Table<LocalMockExam, string>;
 
+  // المنهج المخزّن محلياً
+  subjects!: Table<LocalSubject, string>;
+  units!: Table<LocalUnit, string>;
+  lessons!: Table<LocalLesson, string>;
+
   // طابور المزامنة
   sync_queue!: Table<SyncQueueItem, number>;
 
@@ -73,6 +83,12 @@ export class WejhetDB extends Dexie {
       question_bank_items: "id, subject_id, unit_id, lesson_id",
       mock_exams: "id, subject_id",
       sync_queue: "++id, table, recordId, createdAt",
+    });
+    // نسخة 2: تخزين المنهج محلياً (subjects/units/lessons)
+    this.version(2).stores({
+      subjects: "id, track, slug",
+      units: "id, subject_id",
+      lessons: "id, unit_id",
     });
   }
 }

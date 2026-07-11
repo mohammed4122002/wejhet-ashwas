@@ -1,98 +1,166 @@
-import { redirect } from "next/navigation";
-import { BookOpen, Compass } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { REWARD_SYSTEMS, TRACKS } from "@/lib/domain/constants";
-import type { SubjectTrack } from "@/lib/supabase/database.types";
+"use client";
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
+import { useEffect, useMemo, useState } from "react";
+import { Plus, CalendarPlus, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { HelpCircle } from "lucide-react";
+import { useTasks } from "@/hooks/use-tasks";
+import { useSchedule } from "@/hooks/use-schedule";
+import { useCurriculum } from "@/hooks/use-curriculum";
+import { useDoubts } from "@/hooks/use-doubts";
+import { TaskCard } from "@/components/app/task-card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { todayISO } from "@/lib/db/ids";
+import { WEEKDAYS_AR } from "@/lib/domain/constants";
+
+export default function TodayPage() {
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    tasksForDate,
+    carryOver,
+    ensureTodayGenerated,
+    setStatus,
+    postponeToToday,
+    removeTask,
+    addTask,
+  } = useTasks();
+  const { slots } = useSchedule();
+  const { subjects } = useCurriculum();
+  const { unresolved } = useDoubts();
 
-  // دفاع في العمق: middleware يفترض يمنع الوصول بدون جلسة، لكن لا نعتمد عليه وحده.
-  if (!user) redirect("/login");
+  const subjectName = useMemo(() => {
+    const m = new Map(subjects.map((s) => [s.id, s.name_ar]));
+    return (id: string | null) => (id ? m.get(id) : undefined);
+  }, [subjects]);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("track, reward_system")
-    .eq("id", user.id)
-    .maybeSingle();
+  // توليد مهام اليوم من الجدول (بدون تكرار) عند توفّر الفترات
+  useEffect(() => {
+    void ensureTodayGenerated();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots.length]);
 
-  // مواد الطالب = المشتركة + مواد فرعه (RLS يسمح بالقراءة العامة للمنهج)
-  const trackFilter: SubjectTrack[] = profile?.track
-    ? ["shared", profile.track]
-    : ["shared"];
-  const { data: subjects } = await supabase
-    .from("subjects")
-    .select("id, name_ar, slug, track")
-    .in("track", trackFilter)
-    .order("order_index");
-
-  const trackLabel =
-    TRACKS.find((t) => t.value === profile?.track)?.label ?? "—";
-  const rewardLabel =
-    REWARD_SYSTEMS.find((r) => r.value === profile?.reward_system)?.label ?? "—";
+  const today = new Date();
+  const dateLabel = `${WEEKDAYS_AR[today.getDay()]} · ${todayISO()}`;
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-2">
-        <h1 className="text-h1 text-text-primary">مرحباً بك 👋</h1>
-        <p className="text-body text-text-secondary">
-          فرعك: <span className="text-text-primary">{trackLabel}</span> · نظام
-          المكافأة: <span className="text-text-primary">{rewardLabel}</span>
-        </p>
-      </section>
+      <header className="flex flex-col gap-1">
+        <h1 className="text-h1 text-text-primary">قائمة اليوم</h1>
+        <p className="text-body text-text-secondary">{dateLabel}</p>
+      </header>
 
-      {/* مواد الطالب حسب فرعه (بيانات المنهج البذرية) */}
-      <section className="flex flex-col gap-4">
-        <h2 className="flex items-center gap-2 text-h2 text-text-primary">
-          <BookOpen className="size-5 text-brand-400" aria-hidden />
-          موادك
-        </h2>
+      {/* تذكير الشكوك المعلّقة (ضمن التذكيرات الدراسية — خطة §أ.14) */}
+      {unresolved.length >= 3 && (
+        <Link
+          href="/app/doubts"
+          className="flex items-center gap-3 rounded-card border border-strong bg-bg-surface px-4 py-3 transition-colors hover:border-accent-copper"
+        >
+          <HelpCircle className="size-5 shrink-0 text-accent-copper" aria-hidden />
+          <span className="text-body text-text-secondary">
+            عندك {unresolved.length} أسئلة معلّقة بصندوق الشكوك — خُذها معك لأستاذك.
+          </span>
+        </Link>
+      )}
 
-        {subjects && subjects.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {subjects.map((s) => (
-              <Card key={s.id} className="transition-colors hover:border-brand-400">
-                <CardHeader>
-                  <CardTitle>{s.name_ar}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-secondary text-text-muted">
-                    {s.track === "shared" ? "مادة مشتركة" : trackLabel}
-                  </p>
-                </CardContent>
-              </Card>
+      {/* متراكم من أمس */}
+      {carryOver.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-h2 text-text-primary">متراكم من قبل</h2>
+          <p className="text-secondary text-text-muted">
+            مهام فاتت — أجّلها لليوم أو احذفها، بدون ضغط.
+          </p>
+          <div className="flex flex-col gap-3">
+            {carryOver.map((t) => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                subjectName={subjectName(t.subject_id)}
+                onStatusChange={setStatus}
+                onPostpone={postponeToToday}
+                onDelete={removeTask}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* مهام اليوم */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-h2 text-text-primary">مهام اليوم</h2>
+
+        <AddTaskInline
+          onAdd={(title) => addTask({ title, task_date: todayISO() })}
+        />
+
+        {tasksForDate.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {tasksForDate.map((t) => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                subjectName={subjectName(t.subject_id)}
+                onStatusChange={setStatus}
+                onDelete={removeTask}
+              />
             ))}
           </div>
         ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-              <Compass className="size-8 text-text-muted" aria-hidden />
-              <p className="text-body text-text-secondary">
-                لسا ما توفّرت بيانات المواد. رح تظهر هون بعد تطبيق مخطط قاعدة
-                البيانات وتشغيل بيانات المنهج البذرية.
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyToday hasSchedule={slots.length > 0} />
         )}
       </section>
-
-      {/* ملاحظة صادقة عن مرحلة البناء الحالية (الجلسة 1 — الأساس) */}
-      <Card className="border-brand-500/30">
-        <CardHeader>
-          <CardTitle className="text-h3">الخطوة الجاية</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-body text-text-secondary">
-            خلّصنا الأساس: الدخول، اختيار الفرع، وطبقة العمل بدون إنترنت. حلقة
-            الاستخدام اليومي (الجدولة، مهام اليوم، البومودورو، صندوق الشكوك) رح
-            تنبني بالجلسة الجاية.
-          </p>
-        </CardContent>
-      </Card>
     </div>
+  );
+}
+
+function AddTaskInline({ onAdd }: { onAdd: (title: string) => void }) {
+  const [title, setTitle] = useState("");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const t = title.trim();
+        if (!t) return;
+        onAdd(t);
+        setTitle("");
+      }}
+      className="flex items-center gap-2"
+    >
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="أضف مهمة سريعة لليوم..."
+      />
+      <Button type="submit" size="icon" aria-label="إضافة مهمة">
+        <Plus aria-hidden />
+      </Button>
+    </form>
+  );
+}
+
+function EmptyToday({ hasSchedule }: { hasSchedule: boolean }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+        {hasSchedule ? (
+          <>
+            <Sparkles className="size-8 text-brand-400" aria-hidden />
+            <p className="text-body text-text-secondary">
+              ما في مهام مجدولة لليوم. أضف مهمة سريعة من فوق، أو استمتع باستراحة.
+            </p>
+          </>
+        ) : (
+          <>
+            <CalendarPlus className="size-8 text-brand-400" aria-hidden />
+            <p className="text-body text-text-secondary">
+              لسا ما عندك جدول. ابنِ جدولك الأسبوعي وبتنولّد مهامك اليومية تلقائياً.
+            </p>
+            <Button asChild>
+              <Link href="/app/schedule">ابنِ جدولك</Link>
+            </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

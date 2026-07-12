@@ -12,6 +12,11 @@ import { getDB, type SyncQueueItem } from "./dexie";
 const MAX_ATTEMPTS = 8; // بعدها نوقف المحاولة التلقائية ونترك العنصر بالطابور مع الخطأ
 const RETRY_INTERVAL_MS = 30_000; // إعادة محاولة دورية للطابور
 
+/** عمود التعارض عند الـupsert لكل جدول (افتراضياً id). */
+const CONFLICT_COLUMN: Partial<Record<string, string>> = {
+  reminder_settings: "user_id",
+};
+
 let isFlushing = false;
 
 /** يرفع عنصر واحد؛ يعيد true عند النجاح. */
@@ -30,15 +35,19 @@ async function pushItem(item: SyncQueueItem): Promise<boolean> {
     ) => Promise<{ error: unknown }>;
   };
 
+  const conflictCol = CONFLICT_COLUMN[item.table] ?? "id";
+
   try {
     if (item.op === "delete") {
-      const { error } = await table.delete().eq("id", item.recordId);
+      const { error } = await table.delete().eq(conflictCol, item.recordId);
       if (error) throw error;
       return true;
     }
 
-    // insert / update / upsert ← نستخدم upsert على id (آخر تعديل يفوز)
-    const { error } = await table.upsert(item.payload, { onConflict: "id" });
+    // insert / update / upsert ← upsert على عمود التعارض (آخر تعديل يفوز)
+    const { error } = await table.upsert(item.payload, {
+      onConflict: conflictCol,
+    });
     if (error) throw error;
     return true;
   } catch (err) {

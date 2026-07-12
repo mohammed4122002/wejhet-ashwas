@@ -16,6 +16,16 @@ import {
 import { tasksToCreateForDay, carryOverTasks } from "./src/lib/domain/today";
 import { masteryRatio, heatLevel } from "./src/lib/domain/heatmap";
 import { weakestLesson, scoreMock, type MockQuestion } from "./src/lib/domain/quiz";
+import {
+  buildRewardProgress,
+  litCityCount,
+  growthStage,
+  evaluateBadges,
+  longestStreak,
+  PALESTINE_CITIES,
+} from "./src/lib/domain/rewards";
+import { buildReminders } from "./src/lib/domain/reminders";
+import type { UnitProgress } from "./src/lib/domain/heatmap";
 
 let passed = 0;
 function ok(name: string, cond: boolean) {
@@ -133,5 +143,49 @@ ok("U1 ratio 0.5", mres.weaknessByUnit[0].ratio === 0.5);
 ok("U2 ratio 1.0", mres.weaknessByUnit[1].ratio === 1);
 const empty = scoreMock({}, []);
 ok("empty mock = 0%", empty.scorePercent === 0 && empty.total === 0);
+
+console.log("rewards — progress:");
+const ru: UnitProgress[] = [
+  { unitId: "u1", unitName: "و1", totalLessons: 4, masteredLessons: 4 }, // مكتملة
+  { unitId: "u2", unitName: "و2", totalLessons: 4, masteredLessons: 2 },
+  { unitId: "u3", unitName: "و3", totalLessons: 2, masteredLessons: 0 },
+];
+const rp = buildRewardProgress(ru);
+ok("total lessons 10", rp.totalLessons === 10);
+ok("mastered lessons 6", rp.masteredLessons === 6);
+ok("mastered units 1", rp.masteredUnits === 1);
+ok("total units 3", rp.totalUnits === 3);
+ok("overall ratio 0.6", rp.overallRatio === 0.6);
+ok("empty progress safe", buildRewardProgress([]).overallRatio === 0);
+
+console.log("rewards — templates helpers:");
+ok("lit cities scales with ratio", litCityCount(0.5) === Math.floor(0.5 * PALESTINE_CITIES.length));
+ok("lit cities 0 at start", litCityCount(0) === 0);
+ok("lit cities capped", litCityCount(1) === PALESTINE_CITIES.length);
+ok("growth stage 0 at 0", growthStage(0) === 0);
+ok("growth stage grows", growthStage(1) === 5);
+ok("growth stage mid", growthStage(0.5) >= 3);
+
+console.log("rewards — badges + streak:");
+ok("no streak on empty", longestStreak([]) === 0);
+ok("streak counts consecutive", longestStreak(["2026-07-09", "2026-07-10", "2026-07-11"]) === 3);
+ok("streak breaks on gap", longestStreak(["2026-07-01", "2026-07-10", "2026-07-11"]) === 2);
+ok("streak dedups", longestStreak(["2026-07-10", "2026-07-10"]) === 1);
+const badges = evaluateBadges({ masteredLessons: 10, overallRatio: 0.6, streakDays: 7, bestMockPercent: 100 });
+ok("first_lesson earned", badges.find((b) => b.id === "first_lesson")?.earned === true);
+ok("week_streak earned at 7", badges.find((b) => b.id === "week_streak")?.earned === true);
+ok("mock_ace earned at 100", badges.find((b) => b.id === "mock_ace")?.earned === true);
+const noBadges = evaluateBadges({ masteredLessons: 0, overallRatio: 0, streakDays: 0, bestMockPercent: 40 });
+ok("nothing earned at zero", noBadges.every((b) => !b.earned));
+
+console.log("reminders:");
+const allFlags = { study_reminders: true, motivational_reminders: true, religious_reminders: true };
+const rem = buildReminders({ todayTodo: 2, overdue: 1, doneToday: 3, unresolvedDoubts: 3, flags: allFlags });
+ok("has overdue study reminder", rem.some((r) => r.id === "overdue" && r.layer === "study"));
+ok("has motivational done", rem.some((r) => r.id === "done-today" && r.layer === "motivational"));
+ok("has religious dua when enabled", rem.some((r) => r.layer === "religious"));
+const offFlags = { study_reminders: false, motivational_reminders: false, religious_reminders: false };
+ok("no reminders when all off", buildReminders({ todayTodo: 5, overdue: 5, doneToday: 5, unresolvedDoubts: 5, flags: offFlags }).length === 0);
+ok("doubts reminder only at >=3", buildReminders({ todayTodo: 0, overdue: 0, doneToday: 1, unresolvedDoubts: 2, flags: allFlags }).every((r) => r.id !== "doubts"));
 
 console.log(`\nALL ${passed} ASSERTIONS PASSED ✓`);

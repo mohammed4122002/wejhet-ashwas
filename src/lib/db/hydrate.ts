@@ -37,6 +37,18 @@ export async function hydrateFromServer(userId: string): Promise<void> {
     .select("*")
     .eq("user_id", userId);
 
+  // التفضيلات (الملف الشخصي + إعدادات التذكير) — صف واحد لكل مستخدم
+  const profile = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+  const reminders = await supabase
+    .from("reminder_settings")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   // معرّفات معلّقة بالطابور — لا نكتب فوقها
   const pendingIds = new Set(
     (await db.sync_queue.toArray()).map((i) => i.recordId)
@@ -70,4 +82,12 @@ export async function hydrateFromServer(userId: string): Promise<void> {
   if (lessons.data?.length) await db.lessons.bulkPut(lessons.data);
   if (mockExams.data?.length) await db.mock_exams.bulkPut(mockExams.data);
   await mergePut(db.mock_exam_attempts, mockAttempts.data, false);
+
+  // التفضيلات: لا نكتب فوق تغيير محلي معلّق (recordId = userId)
+  if (profile.data && !pendingIds.has(userId)) {
+    await db.profiles.put(profile.data);
+  }
+  if (reminders.data && !pendingIds.has(userId)) {
+    await db.reminder_settings.put(reminders.data);
+  }
 }

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { hydrateFromServer } from "@/lib/db/hydrate";
 import { flushQueue } from "@/lib/db/sync-engine";
+import { getDB } from "@/lib/db/dexie";
 import type { RewardSystem, Track } from "@/lib/supabase/database.types";
 
 export interface AppUser {
@@ -51,7 +52,31 @@ export function AppDataProvider({
 
   useEffect(() => {
     let cancelled = false;
+
+    // بذر التفضيلات محلياً من سياق الخادم لو لسا مو موجودة (عرض فوري + offline)
+    async function seedPrefs() {
+      const db = getDB();
+      if (!(await db.profiles.get(userId))) {
+        await db.profiles.put({
+          id: userId,
+          track: user.track,
+          reward_system: user.rewardSystem,
+          auto_schedule_apply: user.autoScheduleApply,
+          created_at: null,
+        });
+      }
+      if (!(await db.reminder_settings.get(userId))) {
+        await db.reminder_settings.put({
+          user_id: userId,
+          study_reminders: true,
+          motivational_reminders: true,
+          religious_reminders: false,
+        });
+      }
+    }
+
     async function sync() {
+      await seedPrefs().catch(() => {});
       await hydrateFromServer(userId).catch(() => {
         /* بدون اتصال أو خطأ مؤقّت — نكمل ببيانات Dexie المحلية */
       });
@@ -66,6 +91,8 @@ export function AppDataProvider({
       cancelled = true;
       window.removeEventListener("online", onOnline);
     };
+    // القيم الأخرى من user ثابتة لنفس userId (بذر أولي فقط)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   // لا نحجب الواجهة على الترطيب — العرض المحلي فوري (local-first).

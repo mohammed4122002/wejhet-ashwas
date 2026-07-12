@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { SyncStatus } from "./sync-status";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -14,6 +14,13 @@ export function AppHeader() {
         </Link>
         <div className="flex items-center gap-3">
           <SyncStatus />
+          <Link
+            href="/app/settings"
+            aria-label="الإعدادات"
+            className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-text-secondary transition-colors hover:bg-bg-surface hover:text-text-primary"
+          >
+            <Settings className="size-4" aria-hidden />
+          </Link>
           <form action={logoutAction}>
             <button
               type="submit"

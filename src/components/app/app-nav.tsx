@@ -10,6 +10,7 @@ import {
   Library,
   BarChart3,
   FileCheck,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const LINKS = [
   { href: "/app/schedule", label: "الجدول", icon: CalendarDays },
   { href: "/app/bank", label: "بنك الأسئلة", icon: Library },
   { href: "/app/progress", label: "التقدّم", icon: BarChart3 },
+  { href: "/app/rewards", label: "إنجازي", icon: Sparkles },
   { href: "/app/mock", label: "المحاكاة", icon: FileCheck },
   { href: "/app/exams", label: "العد التنازلي", icon: CalendarClock },
   { href: "/app/doubts", label: "الشكوك", icon: HelpCircle },

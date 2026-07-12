@@ -32,6 +32,10 @@ export type LocalSubject = Tables["subjects"]["Row"];
 export type LocalUnit = Tables["units"]["Row"];
 export type LocalLesson = Tables["lessons"]["Row"];
 
+/** التفضيلات (الملف الشخصي + إعدادات التذكير) — local-first للعمل بدون نت. */
+export type LocalProfile = Tables["profiles"]["Row"];
+export type LocalReminderSettings = Tables["reminder_settings"]["Row"];
+
 /** عملية بانتظار المزامنة مع Supabase. */
 export type SyncOp = "insert" | "update" | "delete" | "upsert";
 
@@ -65,6 +69,10 @@ export class WejhetDB extends Dexie {
   units!: Table<LocalUnit, string>;
   lessons!: Table<LocalLesson, string>;
 
+  // التفضيلات المحلية
+  profiles!: Table<LocalProfile, string>;
+  reminder_settings!: Table<LocalReminderSettings, string>;
+
   // طابور المزامنة
   sync_queue!: Table<SyncQueueItem, number>;
 
@@ -89,6 +97,11 @@ export class WejhetDB extends Dexie {
       subjects: "id, track, slug",
       units: "id, subject_id",
       lessons: "id, unit_id",
+    });
+    // نسخة 3: التفضيلات المحلية (الملف الشخصي + إعدادات التذكير)
+    this.version(3).stores({
+      profiles: "id",
+      reminder_settings: "user_id",
     });
   }
 }

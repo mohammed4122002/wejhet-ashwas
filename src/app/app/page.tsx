@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, CalendarPlus, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { HelpCircle } from "lucide-react";
 import { useTasks } from "@/hooks/use-tasks";
 import { useSchedule } from "@/hooks/use-schedule";
 import { useCurriculum } from "@/hooks/use-curriculum";
-import { useDoubts } from "@/hooks/use-doubts";
+import { RemindersPanel } from "@/components/app/reminders-panel";
 import { TaskCard } from "@/components/app/task-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,6 @@ export default function TodayPage() {
   } = useTasks();
   const { slots } = useSchedule();
   const { subjects } = useCurriculum();
-  const { unresolved } = useDoubts();
 
   const subjectName = useMemo(() => {
     const m = new Map(subjects.map((s) => [s.id, s.name_ar]));
@@ -50,18 +48,8 @@ export default function TodayPage() {
         <p className="text-body text-text-secondary">{dateLabel}</p>
       </header>
 
-      {/* تذكير الشكوك المعلّقة (ضمن التذكيرات الدراسية — خطة §أ.14) */}
-      {unresolved.length >= 3 && (
-        <Link
-          href="/app/doubts"
-          className="flex items-center gap-3 rounded-card border border-strong bg-bg-surface px-4 py-3 transition-colors hover:border-accent-copper"
-        >
-          <HelpCircle className="size-5 shrink-0 text-accent-copper" aria-hidden />
-          <span className="text-body text-text-secondary">
-            عندك {unresolved.length} أسئلة معلّقة بصندوق الشكوك — خُذها معك لأستاذك.
-          </span>
-        </Link>
-      )}
+      {/* التذكيرات ثلاثية الطبقة (خطة §أ.8) */}
+      <RemindersPanel />
 
       {/* متراكم من أمس */}
       {carryOver.length > 0 && (

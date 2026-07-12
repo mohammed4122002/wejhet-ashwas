@@ -1,0 +1,21 @@
+[
+  {
+    "subject_slug": "math",
+    "unit_name": "التفاضل والتكامل",
+    "lesson_name": "المشتقة",
+    "skill_type": "application",
+    "difficulty": "easy",
+    "source": "practice",
+    "exam_year": null,
+    "question_text": "ما هي مشتقة الدالة f(x) = 3x؟",
+    "choices": [
+      { "key": "a", "text": "3" },
+      { "key": "b", "text": "x" },
+      { "key": "c", "text": "3x" },
+      { "key": "d", "text": "0" }
+    ],
+    "correct_answer": "a",
+    "explanation_text": "مشتقة الحد الخطي ax هي a، إذن مشتقة 3x هي 3.",
+    "explanation_video_url": null
+  }
+]

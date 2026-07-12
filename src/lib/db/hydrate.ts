@@ -30,6 +30,13 @@ export async function hydrateFromServer(userId: string): Promise<void> {
       supabase.from("lessons").select("*"),
     ]);
 
+  // قائمة اختبارات المحاكاة (بيانات وصفية صغيرة) — الأسئلة تُحمَّل عند الطلب
+  const mockExams = await supabase.from("mock_exams").select("*");
+  const mockAttempts = await supabase
+    .from("mock_exam_attempts")
+    .select("*")
+    .eq("user_id", userId);
+
   // معرّفات معلّقة بالطابور — لا نكتب فوقها
   const pendingIds = new Set(
     (await db.sync_queue.toArray()).map((i) => i.recordId)
@@ -61,4 +68,6 @@ export async function hydrateFromServer(userId: string): Promise<void> {
   if (subjects.data?.length) await db.subjects.bulkPut(subjects.data);
   if (units.data?.length) await db.units.bulkPut(units.data);
   if (lessons.data?.length) await db.lessons.bulkPut(lessons.data);
+  if (mockExams.data?.length) await db.mock_exams.bulkPut(mockExams.data);
+  await mergePut(db.mock_exam_attempts, mockAttempts.data, false);
 }

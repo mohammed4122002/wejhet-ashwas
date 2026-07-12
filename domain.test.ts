@@ -15,6 +15,7 @@ import {
 } from "./src/lib/domain/schedule";
 import { tasksToCreateForDay, carryOverTasks } from "./src/lib/domain/today";
 import { masteryRatio, heatLevel } from "./src/lib/domain/heatmap";
+import { weakestLesson, scoreMock, type MockQuestion } from "./src/lib/domain/quiz";
 
 let passed = 0;
 function ok(name: string, cond: boolean) {
@@ -104,5 +105,33 @@ ok("ratio capped at 1", masteryRatio({ totalLessons: 2, masteredLessons: 5 }) ==
 ok("heatLevel 0 at start", heatLevel(0) === 0);
 ok("heatLevel 4 at full", heatLevel(1) === 4);
 ok("heatLevel rises with ratio", heatLevel(0.3) > heatLevel(0.1));
+
+console.log("quiz — weakest lesson:");
+const wl = weakestLesson([
+  { lessonId: "L1", lessonName: "درس أ", isCorrect: true },
+  { lessonId: "L1", lessonName: "درس أ", isCorrect: true },
+  { lessonId: "L2", lessonName: "درس ب", isCorrect: false },
+  { lessonId: "L2", lessonName: "درس ب", isCorrect: false },
+]);
+ok("weakest lesson is L2", wl?.lessonId === "L2");
+ok("weakest ratio 0", wl?.ratio === 0);
+ok("weakest lesson null on empty", weakestLesson([]) === null);
+ok("skips null lessonId", weakestLesson([{ lessonId: null, isCorrect: false }]) === null);
+
+console.log("quiz — mock scoring:");
+const mq: MockQuestion[] = [
+  { id: "q1", unit_id: "U1", unit_name: "و1", correct_answer: "a" },
+  { id: "q2", unit_id: "U1", unit_name: "و1", correct_answer: "b" },
+  { id: "q3", unit_id: "U2", unit_name: "و2", correct_answer: "c" },
+  { id: "q4", unit_id: "U2", unit_name: "و2", correct_answer: "d" },
+];
+const mres = scoreMock({ q1: "a", q2: "x", q3: "c", q4: "d" }, mq);
+ok("mock score 75%", mres.scorePercent === 75);
+ok("mock correct 3/4", mres.correct === 3 && mres.total === 4);
+ok("weakest unit first (U1)", mres.weaknessByUnit[0].unitId === "U1");
+ok("U1 ratio 0.5", mres.weaknessByUnit[0].ratio === 0.5);
+ok("U2 ratio 1.0", mres.weaknessByUnit[1].ratio === 1);
+const empty = scoreMock({}, []);
+ok("empty mock = 0%", empty.scorePercent === 0 && empty.total === 0);
 
 console.log(`\nALL ${passed} ASSERTIONS PASSED ✓`);

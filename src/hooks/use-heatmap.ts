@@ -61,10 +61,18 @@ export function useHeatmap() {
         masteredLessons: masteredByUnit.get(u.id)?.size ?? 0,
       });
     }
-    return { progress, units };
+
+    // مجموعة كل الدروس المُتقنة (لعرض حالة الدرس بصفحة التقدّم)
+    const masteredLessonIds = new Set<string>();
+    for (const set of masteredByUnit.values()) {
+      for (const id of set) masteredLessonIds.add(id);
+    }
+
+    return { progress, units, masteredLessonIds };
   }, [userId]);
 
   const progress = data?.progress ?? new Map<string, UnitProgress>();
+  const masteredLessonIds = data?.masteredLessonIds ?? new Set<string>();
 
   /** متوسط نسبة إتقان مادة (متوسط وحداتها). */
   function subjectMastery(subjectId: string): number {
@@ -77,5 +85,5 @@ export function useHeatmap() {
     return sum / us.length;
   }
 
-  return { progress, subjectMastery };
+  return { progress, subjectMastery, masteredLessonIds };
 }

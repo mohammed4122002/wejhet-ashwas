@@ -2,14 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ListTodo, CalendarClock, HelpCircle } from "lucide-react";
+import {
+  CalendarDays,
+  ListTodo,
+  CalendarClock,
+  HelpCircle,
+  Library,
+  BarChart3,
+  FileCheck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/app", label: "اليوم", icon: ListTodo, exact: true },
-  { href: "/app/schedule", label: "الجدول الأسبوعي", icon: CalendarDays },
+  { href: "/app/schedule", label: "الجدول", icon: CalendarDays },
+  { href: "/app/bank", label: "بنك الأسئلة", icon: Library },
+  { href: "/app/progress", label: "التقدّم", icon: BarChart3 },
+  { href: "/app/mock", label: "المحاكاة", icon: FileCheck },
   { href: "/app/exams", label: "العد التنازلي", icon: CalendarClock },
-  { href: "/app/doubts", label: "صندوق الشكوك", icon: HelpCircle },
+  { href: "/app/doubts", label: "الشكوك", icon: HelpCircle },
 ];
 
 /** شريط تنقّل أقسام حلقة الاستخدام اليومي. */

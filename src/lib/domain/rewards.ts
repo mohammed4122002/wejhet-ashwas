@@ -126,6 +126,29 @@ export function evaluateBadges(input: BadgeInput): Badge[] {
   ];
 }
 
+function shiftDay(dateISO: string, delta: number): string {
+  const d = new Date(dateISO + "T00:00:00");
+  d.setDate(d.getDate() + delta);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+
+/**
+ * السلسلة الحالية: أيام متتالية بإنجاز تنتهي باليوم — أو بالأمس إذا اليوم
+ * لسا ما أنجز فيه (حتى لا تنكسر السلسلة نفسياً قبل نهاية اليوم).
+ */
+export function currentStreak(completedDates: string[], today: string): number {
+  const days = new Set(completedDates);
+  let cursor = days.has(today) ? today : shiftDay(today, -1);
+  let n = 0;
+  while (days.has(cursor)) {
+    n += 1;
+    cursor = shiftDay(cursor, -1);
+  }
+  return n;
+}
+
 /** أطول سلسلة أيام متتالية تحتوي إنجازاً، من تواريخ الإنجاز (YYYY-MM-DD). */
 export function longestStreak(completedDates: string[]): number {
   const days = [...new Set(completedDates)].sort();

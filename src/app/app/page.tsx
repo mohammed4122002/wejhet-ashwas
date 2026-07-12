@@ -7,12 +7,13 @@ import { useTasks } from "@/hooks/use-tasks";
 import { useSchedule } from "@/hooks/use-schedule";
 import { useCurriculum } from "@/hooks/use-curriculum";
 import { RemindersPanel } from "@/components/app/reminders-panel";
+import { TodayHero } from "@/components/app/today-hero";
+import { GuidePanel } from "@/components/app/guide-panel";
 import { TaskCard } from "@/components/app/task-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { todayISO } from "@/lib/db/ids";
-import { WEEKDAYS_AR } from "@/lib/domain/constants";
 
 export default function TodayPage() {
   const {
@@ -38,15 +39,13 @@ export default function TodayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slots.length]);
 
-  const today = new Date();
-  const dateLabel = `${WEEKDAYS_AR[today.getDay()]} · ${todayISO()}`;
-
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-h1 text-text-primary">قائمة اليوم</h1>
-        <p className="text-body text-text-secondary">{dateLabel}</p>
-      </header>
+      {/* تحية شخصية + إحصائيات اليوم الحيّة */}
+      <TodayHero />
+
+      {/* خارطة البداية (طالب جديد) أو الخطوة التالية الذكية */}
+      <GuidePanel />
 
       {/* التذكيرات ثلاثية الطبقة (خطة §أ.8) */}
       <RemindersPanel />

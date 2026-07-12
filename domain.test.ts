@@ -25,6 +25,13 @@ import {
   PALESTINE_CITIES,
 } from "./src/lib/domain/rewards";
 import { buildReminders } from "./src/lib/domain/reminders";
+import { currentStreak } from "./src/lib/domain/rewards";
+import {
+  nextStep,
+  buildChecklist,
+  checklistComplete,
+  type NextStepInput,
+} from "./src/lib/domain/next-step";
 import type { UnitProgress } from "./src/lib/domain/heatmap";
 
 let passed = 0;
@@ -190,5 +197,37 @@ ok("has religious dua when enabled", rem.some((r) => r.layer === "religious"));
 const offFlags = { study_reminders: false, motivational_reminders: false, religious_reminders: false };
 ok("no reminders when all off", buildReminders({ todayTodo: 5, overdue: 5, doneToday: 5, unresolvedDoubts: 5, flags: offFlags }).length === 0);
 ok("doubts reminder only at >=3", buildReminders({ todayTodo: 0, overdue: 0, doneToday: 1, unresolvedDoubts: 2, flags: allFlags }).every((r) => r.id !== "doubts"));
+
+console.log("next-step (guidance priorities):");
+const base: NextStepInput = {
+  hasSchedule: true,
+  overdue: 0,
+  todayTodo: 0,
+  todayDone: 2,
+  weakestStartedUnit: null,
+  unresolvedDoubts: 0,
+  hasDownloadedQuestions: true,
+};
+ok("no schedule → build-schedule", nextStep({ ...base, hasSchedule: false }).id === "build-schedule");
+ok("overdue beats today", nextStep({ ...base, overdue: 2, todayTodo: 3 }).id === "clear-overdue");
+ok("today todo → focus-today", nextStep({ ...base, todayTodo: 3 }).id === "focus-today");
+ok("weak unit (<0.6) → strengthen", nextStep({ ...base, weakestStartedUnit: { unitName: "و", ratio: 0.3 } }).id === "strengthen-weakest");
+ok("strong unit (≥0.6) skipped", nextStep({ ...base, weakestStartedUnit: { unitName: "و", ratio: 0.8 } }).id === "day-done");
+ok("3+ doubts → take-doubts", nextStep({ ...base, unresolvedDoubts: 3 }).id === "take-doubts");
+ok("no downloads → download-bank", nextStep({ ...base, hasDownloadedQuestions: false }).id === "download-bank");
+ok("all clear → day-done", nextStep(base).id === "day-done");
+
+console.log("getting-started checklist:");
+const cl = buildChecklist({ hasSchedule: true, completedTasks: 0, pomodoroCount: 0, hasDownloadedQuestions: false });
+ok("4 checklist items", cl.length === 4);
+ok("schedule marked done", cl.find((i) => i.id === "schedule")?.done === true);
+ok("incomplete when steps remain", checklistComplete(cl) === false);
+ok("complete when all done", checklistComplete(buildChecklist({ hasSchedule: true, completedTasks: 1, pomodoroCount: 1, hasDownloadedQuestions: true })) === true);
+
+console.log("current streak:");
+ok("counts chain ending today", currentStreak(["2026-07-10", "2026-07-11", "2026-07-12"], "2026-07-12") === 3);
+ok("today not done yet → yesterday chain holds", currentStreak(["2026-07-10", "2026-07-11"], "2026-07-12") === 2);
+ok("gap breaks current streak", currentStreak(["2026-07-08"], "2026-07-12") === 0);
+ok("empty → 0", currentStreak([], "2026-07-12") === 0);
 
 console.log(`\nALL ${passed} ASSERTIONS PASSED ✓`);

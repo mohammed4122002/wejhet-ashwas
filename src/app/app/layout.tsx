@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/app/app-header";
 import { AppDataProvider } from "@/components/app/app-data-provider";
 import { AppNav } from "@/components/app/app-nav";
+import { MobileTabBar } from "@/components/app/mobile-tab-bar";
 
 /** تخطيط المنطقة المحمية (/app). middleware يضمن وجود جلسة + فرع مختار. */
 export default async function AppLayout({
@@ -40,8 +41,10 @@ export default async function AppLayout({
         <AppHeader />
         <div className="mx-auto max-w-5xl px-4 py-6">
           <AppNav />
-          <main className="py-6">{children}</main>
+          {/* pb-24 يترك مساحة لشريط التبويبات السفلي على الموبايل */}
+          <main className="py-6 pb-24 sm:pb-6">{children}</main>
         </div>
+        <MobileTabBar />
       </div>
     </AppDataProvider>
   );

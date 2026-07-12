@@ -18,7 +18,7 @@ const LINKS = [
   { href: "/app", label: "اليوم", icon: ListTodo, exact: true },
   { href: "/app/schedule", label: "الجدول", icon: CalendarDays },
   { href: "/app/bank", label: "بنك الأسئلة", icon: Library },
-  { href: "/app/progress", label: "التقدّم", icon: BarChart3 },
+  { href: "/app/progress", label: "رحلتي", icon: BarChart3 },
   { href: "/app/rewards", label: "إنجازي", icon: Sparkles },
   { href: "/app/mock", label: "المحاكاة", icon: FileCheck },
   { href: "/app/compete", label: "التنافسي", icon: Trophy },
@@ -30,7 +30,8 @@ export function AppNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-2 overflow-x-auto border-b border-subtle pb-3">
+    // على الموبايل يحلّ محلّه شريط التبويبات السفلي (MobileTabBar)
+    <nav className="hidden gap-2 overflow-x-auto border-b border-subtle pb-3 sm:flex">
       {LINKS.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
         return (

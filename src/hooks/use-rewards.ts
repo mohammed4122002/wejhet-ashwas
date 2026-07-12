@@ -41,10 +41,8 @@ export function useRewards(): { progress: RewardProgress; badges: Badge[] } {
         }
     );
 
-  const progress = buildRewardProgress(trackUnits);
-
-  // تواريخ الإنجاز (لحساب السلسلة) + أعلى علامة محاكاة
-  const streakDays = useLiveQuery(
+  // المهام المنجزة: عددها (يُضيء المكافأة فوراً) + السلسلة
+  const doneStats = useLiveQuery(
     async () => {
       const done = await getDB()
         .tasks.where("user_id")
@@ -52,11 +50,15 @@ export function useRewards(): { progress: RewardProgress; badges: Badge[] } {
         .and((t) => t.status === "done")
         .toArray();
       const dates = done.map((t) => (t.completed_at ?? t.task_date).slice(0, 10));
-      return longestStreak(dates);
+      return { count: done.length, streak: longestStreak(dates) };
     },
     [userId],
-    0
+    { count: 0, streak: 0 }
   );
+  const completedTasks = doneStats?.count ?? 0;
+  const streakDays = doneStats?.streak ?? 0;
+
+  const progress = buildRewardProgress(trackUnits, completedTasks);
 
   const bestMockPercent = useLiveQuery(
     async () => {
@@ -74,9 +76,9 @@ export function useRewards(): { progress: RewardProgress; badges: Badge[] } {
   );
 
   const badges = evaluateBadges({
-    masteredLessons: progress.masteredLessons,
+    completedTasks,
     overallRatio: progress.overallRatio,
-    streakDays: streakDays ?? 0,
+    streakDays,
     bestMockPercent: bestMockPercent ?? null,
   });
 

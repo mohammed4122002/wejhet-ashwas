@@ -3,6 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { getDB } from "@/lib/db/dexie";
 import { enqueue } from "@/lib/db/sync-queue";
+import { createClient } from "@/lib/supabase/client";
 import { useAppUser } from "@/components/app/app-data-provider";
 import type { RewardSystem } from "@/lib/supabase/database.types";
 
@@ -15,9 +16,12 @@ export type ReminderKind =
 export function usePrefs() {
   const {
     userId,
+    email,
     track,
     rewardSystem: fallbackReward,
     autoScheduleApply: fallbackAuto,
+    displayName: fallbackName,
+    avatarUrl: fallbackAvatar,
   } = useAppUser();
 
   const profile = useLiveQuery(() => getDB().profiles.get(userId), [userId]);
@@ -28,6 +32,8 @@ export function usePrefs() {
 
   const rewardSystem: RewardSystem = profile?.reward_system ?? fallbackReward;
   const autoScheduleApply = profile?.auto_schedule_apply ?? fallbackAuto;
+  const displayName = profile?.display_name ?? fallbackName;
+  const avatarUrl = profile?.avatar_url ?? fallbackAvatar;
 
   const reminderFlags = {
     study_reminders: reminders?.study_reminders ?? true,
@@ -38,6 +44,8 @@ export function usePrefs() {
   async function saveProfile(patch: {
     reward_system?: RewardSystem;
     auto_schedule_apply?: boolean;
+    display_name?: string | null;
+    avatar_url?: string | null;
   }) {
     const db = getDB();
     const current =
@@ -48,6 +56,8 @@ export function usePrefs() {
         reward_system: fallbackReward,
         auto_schedule_apply: fallbackAuto,
         created_at: null,
+        display_name: fallbackName,
+        avatar_url: fallbackAvatar,
       } as NonNullable<typeof profile>);
     const next = { ...current, ...patch };
     await db.profiles.put(next);
@@ -60,6 +70,32 @@ export function usePrefs() {
 
   async function setAutoScheduleApply(v: boolean) {
     await saveProfile({ auto_schedule_apply: v });
+  }
+
+  async function setDisplayName(name: string) {
+    await saveProfile({ display_name: name.trim() || null });
+  }
+
+  /** يرفع صورة البروفايل لتخزين Supabase ويحفظ رابطها (يحتاج اتصالاً). */
+  async function uploadAvatar(file: File): Promise<string> {
+    const supabase = createClient();
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
+    const path = `${userId}/avatar.${ext}`;
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true, cacheControl: "3600" });
+    if (error) throw error;
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = `${data.publicUrl}?v=${Date.now()}`; // كسر الكاش بعد التحديث
+    await saveProfile({ avatar_url: url });
+    return url;
+  }
+
+  /** تغيير كلمة المرور (يحتاج اتصالاً). */
+  async function changePassword(newPassword: string) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
   }
 
   async function setReminder(kind: ReminderKind, value: boolean) {
@@ -83,11 +119,17 @@ export function usePrefs() {
   }
 
   return {
+    email,
     rewardSystem,
     autoScheduleApply,
+    displayName,
+    avatarUrl,
     reminders: reminderFlags,
     setRewardSystem,
     setAutoScheduleApply,
     setReminder,
+    setDisplayName,
+    uploadAvatar,
+    changePassword,
   };
 }

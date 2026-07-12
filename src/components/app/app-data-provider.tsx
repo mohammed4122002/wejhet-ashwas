@@ -14,9 +14,12 @@ import type { RewardSystem, Track } from "@/lib/supabase/database.types";
 
 export interface AppUser {
   userId: string;
+  email: string;
   track: Track;
   rewardSystem: RewardSystem;
   autoScheduleApply: boolean;
+  displayName: string | null;
+  avatarUrl: string | null;
 }
 
 const AppUserContext = createContext<AppUser | null>(null);
@@ -63,6 +66,8 @@ export function AppDataProvider({
           reward_system: user.rewardSystem,
           auto_schedule_apply: user.autoScheduleApply,
           created_at: null,
+          display_name: user.displayName,
+          avatar_url: user.avatarUrl,
         });
       }
       if (!(await db.reminder_settings.get(userId))) {

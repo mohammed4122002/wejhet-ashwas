@@ -18,7 +18,7 @@ export default async function AppLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("track, reward_system, auto_schedule_apply")
+    .select("track, reward_system, auto_schedule_apply, display_name, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
   // middleware يضمن وجود الفرع، لكن دفاعاً في العمق نوجّه لو غاب
@@ -28,9 +28,12 @@ export default async function AppLayout({
     <AppDataProvider
       user={{
         userId: user.id,
+        email: user.email ?? "",
         track: profile.track,
         rewardSystem: profile.reward_system,
         autoScheduleApply: profile.auto_schedule_apply,
+        displayName: profile.display_name,
+        avatarUrl: profile.avatar_url,
       }}
     >
       <div className="min-h-screen">

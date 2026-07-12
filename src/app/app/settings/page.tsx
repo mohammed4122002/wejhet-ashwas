@@ -1,13 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, BellRing, Palette, SlidersHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import {
+  Bell,
+  BellRing,
+  Palette,
+  SlidersHorizontal,
+  UserRound,
+  Lock,
+  Camera,
+  Loader2,
+} from "lucide-react";
 import { usePrefs } from "@/hooks/use-prefs";
 import { REWARD_SYSTEMS } from "@/lib/domain/constants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioCard } from "@/components/ui/radio-card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   notificationPermission,
   requestNotificationPermission,
@@ -35,6 +47,9 @@ export default function SettingsPage() {
           كل شي بيدك — بدّل ما بدّك بدون ما تخسر أي تقدّم.
         </p>
       </header>
+
+      <ProfileSection />
+      <SecuritySection />
 
       {/* نظام المكافأة */}
       <Card>
@@ -135,6 +150,144 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/* ============ الملف الشخصي: الاسم + الصورة ============ */
+function ProfileSection() {
+  const { displayName, avatarUrl, email, setDisplayName, uploadAvatar } = usePrefs();
+  const [name, setName] = useState(displayName ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => setName(displayName ?? ""), [displayName]);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMsg(null);
+    setUploading(true);
+    try {
+      await uploadAvatar(file);
+    } catch {
+      setMsg("تعذّر رفع الصورة — تأكّد من اتصالك.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserRound className="size-5 text-brand-400" aria-hidden />
+          الملف الشخصي
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <span className="flex size-20 items-center justify-center overflow-hidden rounded-pill border border-strong bg-bg-raised">
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt="صورة البروفايل" width={80} height={80} className="size-full object-cover" />
+              ) : (
+                <UserRound className="size-8 text-text-muted" aria-hidden />
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="absolute -bottom-1 -left-1 flex size-8 items-center justify-center rounded-pill bg-brand-500 text-text-on-brand shadow-glow-brand"
+              aria-label="غيّر الصورة"
+            >
+              {uploading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Camera className="size-4" aria-hidden />}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-body text-text-primary">{displayName || "طالب"}</span>
+            <span className="text-secondary text-text-muted" dir="ltr">{email}</span>
+          </div>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void setDisplayName(name);
+            setMsg("تم حفظ الاسم.");
+          }}
+          className="flex flex-col gap-2"
+        >
+          <Label htmlFor="display-name">الاسم المعروض</Label>
+          <div className="flex gap-2">
+            <Input id="display-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="اسمك" />
+            <Button type="submit">حفظ</Button>
+          </div>
+        </form>
+        {msg && <p className="text-secondary text-text-secondary">{msg}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============ الأمان: تغيير كلمة المرور ============ */
+function SecuritySection() {
+  const { changePassword } = usePrefs();
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    if (pw.length < 6) return setMsg({ ok: false, text: "كلمة المرور 6 أحرف على الأقل." });
+    if (pw !== pw2) return setMsg({ ok: false, text: "الكلمتان غير متطابقتين." });
+    setSaving(true);
+    try {
+      await changePassword(pw);
+      setMsg({ ok: true, text: "تم تغيير كلمة المرور." });
+      setPw("");
+      setPw2("");
+    } catch {
+      setMsg({ ok: false, text: "تعذّر التغيير — تأكّد من اتصالك وأعد المحاولة." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Lock className="size-5 text-brand-400" aria-hidden />
+          كلمة المرور
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={submit} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="new-pw">كلمة مرور جديدة</Label>
+            <Input id="new-pw" type="password" dir="ltr" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="new-pw2">تأكيد كلمة المرور</Label>
+            <Input id="new-pw2" type="password" dir="ltr" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" />
+          </div>
+          <Button type="submit" disabled={saving} className="self-start">
+            {saving && <Loader2 className="animate-spin" aria-hidden />}
+            غيّر كلمة المرور
+          </Button>
+          {msg && (
+            <p className={msg.ok ? "text-secondary text-status-done" : "text-secondary text-brand-400"}>
+              {msg.text}
+            </p>
+          )}
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ListTodo,
-  CalendarClock,
   HelpCircle,
   Library,
   BarChart3,
@@ -23,7 +22,6 @@ const LINKS = [
   { href: "/app/rewards", label: "إنجازي", icon: Sparkles },
   { href: "/app/mock", label: "المحاكاة", icon: FileCheck },
   { href: "/app/compete", label: "التنافسي", icon: Trophy },
-  { href: "/app/exams", label: "العد التنازلي", icon: CalendarClock },
   { href: "/app/doubts", label: "الشكوك", icon: HelpCircle },
 ];
 

@@ -150,13 +150,15 @@ const ru: UnitProgress[] = [
   { unitId: "u2", unitName: "و2", totalLessons: 4, masteredLessons: 2 },
   { unitId: "u3", unitName: "و3", totalLessons: 2, masteredLessons: 0 },
 ];
-const rp = buildRewardProgress(ru);
+const rp = buildRewardProgress(ru, 7);
 ok("total lessons 10", rp.totalLessons === 10);
 ok("mastered lessons 6", rp.masteredLessons === 6);
 ok("mastered units 1", rp.masteredUnits === 1);
 ok("total units 3", rp.totalUnits === 3);
 ok("overall ratio 0.6", rp.overallRatio === 0.6);
+ok("completed tasks passed through", rp.completedTasks === 7);
 ok("empty progress safe", buildRewardProgress([]).overallRatio === 0);
+ok("completed tasks defaults 0", buildRewardProgress([]).completedTasks === 0);
 
 console.log("rewards — templates helpers:");
 ok("lit cities scales with ratio", litCityCount(0.5) === Math.floor(0.5 * PALESTINE_CITIES.length));
@@ -171,11 +173,12 @@ ok("no streak on empty", longestStreak([]) === 0);
 ok("streak counts consecutive", longestStreak(["2026-07-09", "2026-07-10", "2026-07-11"]) === 3);
 ok("streak breaks on gap", longestStreak(["2026-07-01", "2026-07-10", "2026-07-11"]) === 2);
 ok("streak dedups", longestStreak(["2026-07-10", "2026-07-10"]) === 1);
-const badges = evaluateBadges({ masteredLessons: 10, overallRatio: 0.6, streakDays: 7, bestMockPercent: 100 });
-ok("first_lesson earned", badges.find((b) => b.id === "first_lesson")?.earned === true);
+const badges = evaluateBadges({ completedTasks: 10, overallRatio: 0.6, streakDays: 7, bestMockPercent: 100 });
+ok("first_task earned", badges.find((b) => b.id === "first_task")?.earned === true);
+ok("ten_tasks earned at 10", badges.find((b) => b.id === "ten_tasks")?.earned === true);
 ok("week_streak earned at 7", badges.find((b) => b.id === "week_streak")?.earned === true);
 ok("mock_ace earned at 100", badges.find((b) => b.id === "mock_ace")?.earned === true);
-const noBadges = evaluateBadges({ masteredLessons: 0, overallRatio: 0, streakDays: 0, bestMockPercent: 40 });
+const noBadges = evaluateBadges({ completedTasks: 0, overallRatio: 0, streakDays: 0, bestMockPercent: 40 });
 ok("nothing earned at zero", noBadges.every((b) => !b.earned));
 
 console.log("reminders:");

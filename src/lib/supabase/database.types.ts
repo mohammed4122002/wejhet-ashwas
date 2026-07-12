@@ -40,6 +40,8 @@ export interface Database {
           reward_system: RewardSystem;
           auto_schedule_apply: boolean;
           created_at: string | null;
+          display_name: string | null;
+          avatar_url: string | null;
         };
         Insert: {
           id: string;
@@ -47,6 +49,8 @@ export interface Database {
           reward_system?: RewardSystem;
           auto_schedule_apply?: boolean;
           created_at?: string | null;
+          display_name?: string | null;
+          avatar_url?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
         Relationships: [];

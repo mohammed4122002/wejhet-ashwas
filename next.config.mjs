@@ -1,7 +1,12 @@
 import withSerwistInit from "@serwist/next";
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  images: {
+    // صور البروفايل من تخزين Supabase
+    remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
+  },
+};
 
 // Serwist — Service Worker لتخزين أصول التطبيق والعمل بدون نت (خطة §ب.5 بند 6)
 const withSerwist = withSerwistInit({

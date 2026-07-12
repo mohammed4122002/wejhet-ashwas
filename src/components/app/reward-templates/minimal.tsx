@@ -21,7 +21,7 @@ export function Minimal({ progress }: { progress: RewardProgress }) {
           label="وحدات مكتملة"
           value={`${progress.masteredUnits}/${progress.totalUnits}`}
         />
-        <Stat label="متبقٍّ" value={`${progress.totalLessons - progress.masteredLessons}`} />
+        <Stat label="مهام مُنجزة" value={`${progress.completedTasks}`} />
       </div>
 
       <Card>

@@ -13,11 +13,19 @@ export interface RewardProgress {
   masteredUnits: number; // وحدات مُتقنة بالكامل
   totalUnits: number;
   overallRatio: number; // نسبة الدروس المُتقنة من الإجمالي [0..1]
+  completedTasks: number; // مهام أُنجزت (تُضيء المكافأة فور إتمام المهمة)
   units: UnitProgress[];
 }
 
-/** يبني نموذج التقدّم الموحّد من تقدّم الوحدات. */
-export function buildRewardProgress(units: UnitProgress[]): RewardProgress {
+/**
+ * يبني نموذج التقدّم الموحّد.
+ * @param units تقدّم الوحدات (للإتقان العميق: كوكبات/خارطة/شجرة).
+ * @param completedTasks عدد المهام المُنجزة (للإضاءة الفورية: نجوم/مباني).
+ */
+export function buildRewardProgress(
+  units: UnitProgress[],
+  completedTasks = 0
+): RewardProgress {
   const totalLessons = units.reduce((s, u) => s + u.totalLessons, 0);
   const masteredLessons = units.reduce((s, u) => s + u.masteredLessons, 0);
   const totalUnits = units.filter((u) => u.totalLessons > 0).length;
@@ -30,6 +38,7 @@ export function buildRewardProgress(units: UnitProgress[]): RewardProgress {
     masteredUnits,
     totalUnits,
     overallRatio: totalLessons ? masteredLessons / totalLessons : 0,
+    completedTasks,
     units,
   };
 }
@@ -68,7 +77,7 @@ export function constellationName(unitName: string): string {
 
 // ============ الشارات النصية المشتركة بين كل القوالب ============
 export interface BadgeInput {
-  masteredLessons: number;
+  completedTasks: number; // مهام مُنجزة
   overallRatio: number;
   streakDays: number; // أطول سلسلة أيام متتالية فيها إنجاز
   bestMockPercent: number | null; // أعلى علامة اختبار محاكاة
@@ -85,16 +94,16 @@ export interface Badge {
 export function evaluateBadges(input: BadgeInput): Badge[] {
   return [
     {
-      id: "first_lesson",
+      id: "first_task",
       label: "أول خطوة",
-      description: "أتقنت أول درس",
-      earned: input.masteredLessons >= 1,
+      description: "أنجزت أول مهمة",
+      earned: input.completedTasks >= 1,
     },
     {
-      id: "ten_lessons",
+      id: "ten_tasks",
       label: "عشرة على التوالي",
-      description: "أتقنت 10 دروس",
-      earned: input.masteredLessons >= 10,
+      description: "أنجزت 10 مهام",
+      earned: input.completedTasks >= 10,
     },
     {
       id: "week_streak",

@@ -11,6 +11,7 @@ import {
   BarChart3,
   FileCheck,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const LINKS = [
   { href: "/app/progress", label: "التقدّم", icon: BarChart3 },
   { href: "/app/rewards", label: "إنجازي", icon: Sparkles },
   { href: "/app/mock", label: "المحاكاة", icon: FileCheck },
+  { href: "/app/compete", label: "التنافسي", icon: Trophy },
   { href: "/app/exams", label: "العد التنازلي", icon: CalendarClock },
   { href: "/app/doubts", label: "الشكوك", icon: HelpCircle },
 ];

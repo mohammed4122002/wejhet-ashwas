@@ -337,6 +337,7 @@ export interface Database {
           start_date: string | null;
           end_date: string | null;
           created_at: string | null;
+          goal: string | null;
         };
         Insert: {
           id?: string;
@@ -347,6 +348,7 @@ export interface Database {
           start_date?: string | null;
           end_date?: string | null;
           created_at?: string | null;
+          goal?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["challenges"]["Insert"]>;
         Relationships: [];
@@ -357,12 +359,16 @@ export interface Database {
           user_id: string;
           display_alias: string | null;
           joined_at: string | null;
+          progress: number;
+          updated_at: string | null;
         };
         Insert: {
           challenge_id: string;
           user_id: string;
           display_alias?: string | null;
           joined_at?: string | null;
+          progress?: number;
+          updated_at?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["challenge_participants"]["Insert"]
@@ -374,11 +380,17 @@ export interface Database {
           user_id: string;
           display_alias: string;
           is_visible: boolean;
+          commitment_score: number;
+          streak_days: number;
+          updated_at: string | null;
         };
         Insert: {
           user_id: string;
           display_alias: string;
           is_visible?: boolean;
+          commitment_score?: number;
+          streak_days?: number;
+          updated_at?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["leaderboard_opt_in"]["Insert"]
@@ -441,7 +453,16 @@ export interface Database {
         Relationships: [];
       };
     };
-    Functions: Record<string, never>;
+    Functions: {
+      join_challenge: {
+        Args: { code: string; alias: string };
+        Returns: string | null;
+      };
+      is_member_of: {
+        Args: { cid: string };
+        Returns: boolean;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

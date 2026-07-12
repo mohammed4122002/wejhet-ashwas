@@ -20,6 +20,10 @@ export const metadata: Metadata = {
     "منصة عربية لطالب التوجيهي الفلسطيني: جدولة، مهام يومية، بومودورو، بنك أسئلة، وخريطة تقدّم — الطالب صاحب القرار دائماً.",
   manifest: "/manifest.webmanifest",
   applicationName: "وجهة أشوس",
+  icons: {
+    icon: "/brand/icon-192.png",
+    apple: "/brand/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     title: "وجهة أشوس",

@@ -224,6 +224,52 @@ ok("schedule marked done", cl.find((i) => i.id === "schedule")?.done === true);
 ok("incomplete when steps remain", checklistComplete(cl) === false);
 ok("complete when all done", checklistComplete(buildChecklist({ hasSchedule: true, completedTasks: 1, pomodoroCount: 1, hasDownloadedQuestions: true })) === true);
 
+console.log("fixed commitments (scheduler avoidance):");
+const oneSub = [{ id: "a", name: "أ" }];
+const genFixed = generateWeeklySlots(
+  oneSub,
+  {
+    freeHoursByDay: [2, 0, 0, 0, 0, 0, 0],
+    startHour: 16,
+    fixedBlocks: [{ day_of_week: 0, start_time: "16:00", end_time: "17:00" }],
+  },
+  false,
+  FROM
+);
+ok("skips the blocked 16:00 hour", genFixed.every((s) => s.start_time !== "16:00"));
+ok("still places both sessions", genFixed.length === 2);
+ok("shifts to 17:00 and 18:00", genFixed.some((s) => s.start_time === "17:00") && genFixed.some((s) => s.start_time === "18:00"));
+const genOtherDay = generateWeeklySlots(
+  oneSub,
+  {
+    freeHoursByDay: [1, 0, 0, 0, 0, 0, 0],
+    startHour: 16,
+    fixedBlocks: [{ day_of_week: 1, start_time: "16:00", end_time: "17:00" }],
+  },
+  false,
+  FROM
+);
+ok("block on another day is ignored", genOtherDay[0].start_time === "16:00");
+const genPartial = generateWeeklySlots(
+  oneSub,
+  {
+    freeHoursByDay: [1, 0, 0, 0, 0, 0, 0],
+    startHour: 16,
+    fixedBlocks: [{ day_of_week: 0, start_time: "16:00", end_time: "23:59" }],
+  },
+  false,
+  FROM
+);
+ok("fully blocked evening → places nothing (no cramming)", genPartial.length === 0);
+
+console.log("fixed commitments (no daily tasks):");
+const fixedSlot = {
+  id: "fx1", user_id: "u", day_of_week: 6, start_time: "07:30", end_time: "13:30",
+  title: "المدرسة", subject_id: null, is_recurring: true, slot_type: "fixed",
+  created_at: null, updated_at: null,
+};
+ok("fixed slot creates no task", tasksToCreateForDay([fixedSlot] as never, [], 6, "2026-07-11").length === 0);
+
 console.log("current streak:");
 ok("counts chain ending today", currentStreak(["2026-07-10", "2026-07-11", "2026-07-12"], "2026-07-12") === 3);
 ok("today not done yet → yesterday chain holds", currentStreak(["2026-07-10", "2026-07-11"], "2026-07-12") === 2);

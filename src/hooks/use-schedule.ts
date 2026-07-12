@@ -14,6 +14,8 @@ export interface NewSlotInput {
   title: string;
   subject_id?: string | null;
   is_recurring?: boolean;
+  /** 'fixed' = التزام ثابت (مدرسة/درس خصوصي) — تتجنّبه الجدولة ولا يولّد مهاماً. */
+  slot_type?: "study" | "fixed";
 }
 
 /** فترات الجدول الأسبوعي — قراءة محلية حيّة + كتابات local-first. */
@@ -37,6 +39,10 @@ export function useSchedule() {
     [] as LocalScheduleSlot[]
   );
 
+  // فصل فترات المذاكرة عن الالتزامات الثابتة (الصفوف القديمة بلا slot_type = مذاكرة)
+  const studySlots = slots.filter((s) => (s.slot_type ?? "study") !== "fixed");
+  const fixedSlots = slots.filter((s) => (s.slot_type ?? "study") === "fixed");
+
   function buildRow(input: NewSlotInput): LocalScheduleSlot {
     return {
       id: newId(),
@@ -47,6 +53,7 @@ export function useSchedule() {
       title: input.title,
       subject_id: input.subject_id ?? null,
       is_recurring: input.is_recurring ?? true,
+      slot_type: input.slot_type ?? "study",
       created_at: nowISO(),
       updated_at: nowISO(),
     };
@@ -64,10 +71,12 @@ export function useSchedule() {
     await localDelete("schedule_slots", id);
   }
 
-  /** يستبدل كامل الجدول بمسودة مولّدة معتمَدة (مساعد/تلقائي بعد الموافقة). */
+  /**
+   * يستبدل فترات المذاكرة بمسودة مولّدة معتمَدة (مساعد/تلقائي بعد الموافقة).
+   * الالتزامات الثابتة لا تُمسّ — تبقى كما ضبطها الطالب من الإعدادات.
+   */
   async function replaceWithGenerated(generated: GeneratedSlot[]) {
-    // احذف القديم ثم أضف الجديد
-    for (const s of slots) {
+    for (const s of studySlots) {
       await localDelete("schedule_slots", s.id);
     }
     for (const g of generated) {
@@ -80,10 +89,19 @@ export function useSchedule() {
           title: g.title,
           subject_id: g.subject_id,
           is_recurring: true,
+          slot_type: "study",
         })
       );
     }
   }
 
-  return { slots, addSlot, updateSlot, removeSlot, replaceWithGenerated };
+  return {
+    slots,
+    studySlots,
+    fixedSlots,
+    addSlot,
+    updateSlot,
+    removeSlot,
+    replaceWithGenerated,
+  };
 }

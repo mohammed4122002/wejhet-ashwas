@@ -37,6 +37,8 @@ export function tasksToCreateForDay(
 
   return slots
     .filter((s) => s.day_of_week === dayOfWeek)
+    // الالتزامات الثابتة (مدرسة/دروس) ليست مهام مذاكرة — لا تتولّد منها مهام
+    .filter((s) => (s.slot_type ?? "study") !== "fixed")
     .filter((s) => !alreadyHasTask.has(s.id))
     .map((s) => ({
       schedule_slot_id: s.id,

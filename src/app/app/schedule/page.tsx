@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Wand2, Check, X } from "lucide-react";
+import Link from "next/link";
+import { Plus, Wand2, Check, X, CalendarClock } from "lucide-react";
 import { useSchedule } from "@/hooks/use-schedule";
 import { useCurriculum } from "@/hooks/use-curriculum";
 import { useExams } from "@/hooks/use-exams";
@@ -216,7 +217,7 @@ function GeneratorMode({
   const { subjects } = useCurriculum();
   const { exams } = useExams();
   const { subjectMastery } = useHeatmap();
-  const { replaceWithGenerated } = useSchedule();
+  const { replaceWithGenerated, fixedSlots } = useSchedule();
   const { autoScheduleApply } = useAppUser();
 
   const [hours, setHours] = useState<number[]>([2, 2, 2, 2, 2, 0, 2]);
@@ -233,7 +234,17 @@ function GeneratorMode({
     }));
     const generated = generateWeeklySlots(
       schedulable,
-      { freeHoursByDay: hours, sessionLengthHours: 1, startHour: 16 },
+      {
+        freeHoursByDay: hours,
+        sessionLengthHours: 1,
+        startHour: 16,
+        // نتجنّب التزامات الطالب الثابتة (مدرسة/دروس) — تُدار من الإعدادات
+        fixedBlocks: fixedSlots.map((f) => ({
+          day_of_week: f.day_of_week,
+          start_time: f.start_time,
+          end_time: f.end_time,
+        })),
+      },
       weighted
     );
 
@@ -276,10 +287,20 @@ function GeneratorMode({
           </div>
           {weighted && (
             <p className="text-secondary text-text-muted">
-              النظام التلقائي يرجّح المواد حسب قرب الامتحان ونقاط الضعف. حدّث
-              تواريخ امتحاناتك من قسم «العد التنازلي» لنتيجة أدق.
+              النظام التلقائي يرجّح المواد حسب قرب الامتحان ونقاط الضعف.
             </p>
           )}
+
+          {/* الالتزامات الثابتة — واقع يوم الطالب */}
+          <p className="flex flex-wrap items-center gap-1.5 rounded-input border border-strong bg-bg-surface px-4 py-3 text-secondary text-text-secondary">
+            <CalendarClock className="size-4 shrink-0 text-accent-gold" aria-hidden />
+            {fixedSlots.length > 0
+              ? `بنتجنّب تلقائياً ${fixedSlots.length} ${fixedSlots.length === 1 ? "التزاماً ثابتاً" : "التزامات ثابتة"} عندك (مدرسة، دروس...).`
+              : "عندك مدرسة أو دروس خصوصية بأوقات ثابتة؟ أضفها مرة وحدة وبنتجنّبها تلقائياً."}{" "}
+            <Link href="/app/settings" className="text-brand-400 hover:underline">
+              عدّلها من الإعدادات
+            </Link>
+          </p>
           <div>
             <Button onClick={generate}>
               <Wand2 aria-hidden /> ولّد اقتراحاً

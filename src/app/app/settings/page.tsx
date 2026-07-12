@@ -11,9 +11,14 @@ import {
   Lock,
   Camera,
   Loader2,
+  CalendarClock,
+  Plus,
+  Trash2,
+  Clock,
 } from "lucide-react";
 import { usePrefs } from "@/hooks/use-prefs";
-import { REWARD_SYSTEMS } from "@/lib/domain/constants";
+import { useSchedule } from "@/hooks/use-schedule";
+import { REWARD_SYSTEMS, WEEKDAYS_AR } from "@/lib/domain/constants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioCard } from "@/components/ui/radio-card";
 import { Switch } from "@/components/ui/switch";
@@ -132,6 +137,9 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* الالتزامات الثابتة — قابلة للتعديل دائماً لأن الظروف تتغيّر */}
+      <FixedCommitmentsSection />
+
       {/* الجدولة التلقائية */}
       <Card>
         <CardHeader>
@@ -150,6 +158,162 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/* ============ الالتزامات الثابتة (مدرسة، دروس خصوصية...) ============ */
+const COMMITMENT_SUGGESTIONS = [
+  "المدرسة",
+  "درس خصوصي",
+  "مركز تقوية",
+  "رياضة",
+  "حفظ قرآن",
+];
+
+function FixedCommitmentsSection() {
+  const { fixedSlots, addSlot, removeSlot } = useSchedule();
+  const [title, setTitle] = useState("");
+  const [day, setDay] = useState(0);
+  const [start, setStart] = useState("07:30");
+  const [end, setEnd] = useState("13:30");
+  const [schoolWeek, setSchoolWeek] = useState(false); // الأحد–الخميس دفعة وحدة
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CalendarClock className="size-5 text-accent-gold" aria-hidden />
+          الالتزامات الثابتة
+        </CardTitle>
+        <CardDescription>
+          مدرستك، دروسك الخصوصية، أي وقت محجوز — الجدولة التلقائية تتجنّبها ولا
+          تتحوّل لمهام. عدّلها أي وقت لو تغيّرت مواعيدك.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {/* القائمة الحالية */}
+        {fixedSlots.length > 0 ? (
+          <ul className="flex flex-col gap-2">
+            {fixedSlots.map((f) => (
+              <li
+                key={f.id}
+                className="flex items-center justify-between gap-3 rounded-input border border-strong bg-bg-surface px-4 py-2.5"
+              >
+                <span className="flex flex-wrap items-center gap-2 text-body text-text-primary">
+                  {f.title}
+                  <span className="inline-flex items-center gap-1 rounded-pill bg-bg-raised px-2 py-0.5 text-secondary tabular-nums text-text-secondary">
+                    <Clock className="size-3" aria-hidden />
+                    {WEEKDAYS_AR[f.day_of_week]} {f.start_time.slice(0, 5)}–
+                    {f.end_time.slice(0, 5)}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void removeSlot(f.id)}
+                  className="rounded-pill p-1.5 text-text-muted transition-colors hover:text-brand-400"
+                  aria-label={`حذف ${f.title}`}
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-secondary text-text-muted">
+            لا التزامات بعد — أضف مدرستك أولاً حتى ما تتصادم معها الجدولة.
+          </p>
+        )}
+
+        {/* إضافة التزام */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const t = title.trim();
+            if (!t || start >= end) return;
+            const days = schoolWeek ? [0, 1, 2, 3, 4] : [day];
+            for (const d of days) {
+              void addSlot({
+                day_of_week: d,
+                start_time: start,
+                end_time: end,
+                title: t,
+                slot_type: "fixed",
+              });
+            }
+            setTitle("");
+          }}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        >
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor="fixed-title">الالتزام</Label>
+            <Input
+              id="fixed-title"
+              list="commitment-suggestions"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="مثال: المدرسة"
+            />
+            <datalist id="commitment-suggestions">
+              {COMMITMENT_SUGGESTIONS.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="fixed-day">اليوم</Label>
+            <select
+              id="fixed-day"
+              value={day}
+              disabled={schoolWeek}
+              onChange={(e) => setDay(Number(e.target.value))}
+              className="h-11 rounded-input border border-strong bg-bg-surface px-3 text-body text-text-primary disabled:opacity-50"
+            >
+              {WEEKDAYS_AR.map((d, i) => (
+                <option key={i} value={i}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <label className="flex items-center gap-2 text-secondary text-text-secondary">
+              <input
+                type="checkbox"
+                checked={schoolWeek}
+                onChange={(e) => setSchoolWeek(e.target.checked)}
+                className="size-4 accent-brand-500"
+              />
+              كرّر كل أيام الدراسة (الأحد–الخميس)
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="fixed-start">من</Label>
+              <Input
+                id="fixed-start"
+                type="time"
+                dir="ltr"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="fixed-end">إلى</Label>
+              <Input
+                id="fixed-end"
+                type="time"
+                dir="ltr"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="sm:col-span-2">
+            <Button type="submit" variant="secondary" disabled={!title.trim() || start >= end}>
+              <Plus aria-hidden /> أضف الالتزام
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 

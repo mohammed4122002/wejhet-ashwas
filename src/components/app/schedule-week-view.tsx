@@ -11,6 +11,7 @@ export interface DisplaySlot {
   end_time: string;
   title: string;
   subject_id: string | null;
+  slot_type?: "study" | "fixed";
 }
 
 /** عرض الجدول الأسبوعي مجمّعاً حسب اليوم (يُستخدم للعرض والمعاينة). */
@@ -51,8 +52,13 @@ export function ScheduleWeekView({
                       {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-body text-text-primary">
+                      <span className="flex items-center gap-2 text-body text-text-primary">
                         {s.title}
+                        {(s.slot_type ?? "study") === "fixed" && (
+                          <span className="rounded-pill bg-accent-gold/10 px-2 py-0.5 text-secondary text-accent-gold">
+                            التزام ثابت
+                          </span>
+                        )}
                       </span>
                       {subjectName?.(s.subject_id) && (
                         <span className="text-secondary text-text-muted">

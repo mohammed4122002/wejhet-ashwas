@@ -19,11 +19,20 @@ export interface SchedulableSubject {
   masteryRatio?: number;
 }
 
+/** التزام ثابت (مدرسة، درس خصوصي...) — الجدولة تتجنّبه (خطة §4.2). */
+export interface FixedBlock {
+  day_of_week: number;
+  start_time: string; // "HH:MM"
+  end_time: string; // "HH:MM"
+}
+
 /** ساعات فاضية لكل يوم (0=الأحد .. 6=السبت) + طول الفترة + ساعة البدء. */
 export interface FreeTimeInput {
   freeHoursByDay: number[]; // طول 7
   sessionLengthHours?: number; // افتراضي 1
   startHour?: number; // افتراضي 16 (بعد المدرسة)
+  /** فترات محجوزة تتجنّبها الجدولة (قابلة للتعديل من الإعدادات دائماً). */
+  fixedBlocks?: FixedBlock[];
 }
 
 export interface GeneratedSlot {
@@ -101,10 +110,21 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+function toMin(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+function fromMin(m: number): string {
+  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+}
+
 /**
  * يولّد فترات الجدول الأسبوعي.
  * - يحسب عدد الفترات لكل يوم من الساعات الفاضية.
  * - يوزّع المواد على الأيام بترتيب دوّار (round-robin) حسب حصصها المرجّحة.
+ * - يتجنّب الالتزامات الثابتة (مدرسة، دروس خصوصية...) — يزحزح الفترة لأقرب
+ *   ساعة حرة بعدها، وإن لم يتّسع اليوم يضع ما أمكن فقط (واقعية لا تكديس).
  */
 export function generateWeeklySlots(
   subjects: SchedulableSubject[],
@@ -114,6 +134,7 @@ export function generateWeeklySlots(
 ): GeneratedSlot[] {
   const sessionLen = input.sessionLengthHours ?? 1;
   const startHour = input.startHour ?? 16;
+  const fixed = input.fixedBlocks ?? [];
 
   const sessionsPerDay = input.freeHoursByDay.map((h) =>
     Math.max(0, Math.floor(h / sessionLen))
@@ -137,18 +158,39 @@ export function generateWeeklySlots(
     }
   }
 
+  const sessionMin = sessionLen * 60;
   const slots: GeneratedSlot[] = [];
   let qi = 0;
+
   for (let day = 0; day < 7; day++) {
-    for (let i = 0; i < sessionsPerDay[day]; i++) {
+    const needed = sessionsPerDay[day];
+    if (needed === 0) continue;
+
+    const blocked: Array<readonly [number, number]> = fixed
+      .filter((b) => b.day_of_week === day)
+      .map((b) => [toMin(b.start_time), toMin(b.end_time)] as const);
+    const placed: Array<readonly [number, number]> = [];
+
+    // نمشي ساعة بساعة من ساعة البدء ونحجز أول فراغ حر
+    for (
+      let h = startHour;
+      h * 60 + sessionMin <= 24 * 60 && placed.length < needed;
+      h++
+    ) {
+      const s = h * 60;
+      const e = s + sessionMin;
+      const clash = [...blocked, ...placed].some(
+        ([bs, be]) => s < be && e > bs
+      );
+      if (clash) continue;
+
+      placed.push([s, e]);
       const subject = queue[qi % queue.length];
       qi += 1;
-      const sh = startHour + i * sessionLen;
-      const eh = sh + sessionLen;
       slots.push({
         day_of_week: day,
-        start_time: `${pad2(sh)}:00`,
-        end_time: `${pad2(eh)}:00`,
+        start_time: fromMin(s),
+        end_time: fromMin(e),
         title: `مذاكرة ${subject.name}`,
         subject_id: subject.id,
       });

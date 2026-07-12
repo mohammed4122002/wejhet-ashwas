@@ -18,6 +18,7 @@ export type RewardSystem =
   | "minimal";
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskType = "study" | "review";
+export type SlotType = "study" | "fixed";
 export type SkillType = "understanding" | "application" | "analysis";
 export type Difficulty = "easy" | "medium" | "hard";
 export type QuestionSource = "past_exam" | "practice";
@@ -115,6 +116,7 @@ export interface Database {
           title: string;
           subject_id: string | null;
           is_recurring: boolean | null;
+          slot_type: SlotType;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -127,6 +129,7 @@ export interface Database {
           title: string;
           subject_id?: string | null;
           is_recurring?: boolean | null;
+          slot_type?: SlotType;
           created_at?: string | null;
           updated_at?: string | null;
         };

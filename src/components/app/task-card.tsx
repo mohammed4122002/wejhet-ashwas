@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Timer, RefreshCw, Trash2, Repeat } from "lucide-react";
+import { Timer, RefreshCw, Trash2, Repeat, Clock } from "lucide-react";
 import type { LocalTask } from "@/lib/db/dexie";
 import type { TaskStatus } from "@/lib/supabase/database.types";
 import { Card } from "@/components/ui/card";
@@ -12,12 +12,15 @@ import { cn } from "@/lib/utils";
 export function TaskCard({
   task,
   subjectName,
+  timeLabel,
   onStatusChange,
   onPostpone,
   onDelete,
 }: {
   task: LocalTask;
   subjectName?: string;
+  /** وقت الفترة من الجدول (HH:MM) — يُظهر المهمة بمكانها من اليوم الفعلي. */
+  timeLabel?: string;
   onStatusChange: (task: LocalTask, next: TaskStatus) => void;
   onPostpone?: (task: LocalTask) => void;
   onDelete?: (id: string) => void;
@@ -31,6 +34,12 @@ export function TaskCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
+            {timeLabel && (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-bg-raised px-2 py-0.5 text-secondary tabular-nums text-text-secondary">
+                <Clock className="size-3" aria-hidden />
+                {timeLabel}
+              </span>
+            )}
             {isReview && (
               <span className="inline-flex items-center gap-1 rounded-pill bg-accent-copper/10 px-2 py-0.5 text-secondary text-accent-copper">
                 <Repeat className="size-3" aria-hidden />

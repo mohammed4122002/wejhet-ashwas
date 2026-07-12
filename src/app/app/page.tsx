@@ -33,6 +33,21 @@ export default function TodayPage() {
     return (id: string | null) => (id ? m.get(id) : undefined);
   }, [subjects]);
 
+  // محاكاة اليوم الفعلي: كل مهمة بوقتها من الجدول، مرتّبة بترتيب يومك الحقيقي
+  const slotTime = useMemo(
+    () => new Map(slots.map((s) => [s.id, s.start_time.slice(0, 5)])),
+    [slots]
+  );
+  const orderedToday = useMemo(() => {
+    const timeOf = (t: (typeof tasksForDate)[number]) =>
+      (t.schedule_slot_id && slotTime.get(t.schedule_slot_id)) || "99:99";
+    return [...tasksForDate].sort(
+      (a, b) =>
+        timeOf(a).localeCompare(timeOf(b)) ||
+        (a.created_at ?? "").localeCompare(b.created_at ?? "")
+    );
+  }, [tasksForDate, slotTime]);
+
   // توليد مهام اليوم من الجدول (بدون تكرار) عند توفّر الفترات
   useEffect(() => {
     void ensureTodayGenerated();
@@ -80,13 +95,16 @@ export default function TodayPage() {
           onAdd={(title) => addTask({ title, task_date: todayISO() })}
         />
 
-        {tasksForDate.length > 0 ? (
+        {orderedToday.length > 0 ? (
           <div className="flex flex-col gap-3">
-            {tasksForDate.map((t) => (
+            {orderedToday.map((t) => (
               <TaskCard
                 key={t.id}
                 task={t}
                 subjectName={subjectName(t.subject_id)}
+                timeLabel={
+                  t.schedule_slot_id ? slotTime.get(t.schedule_slot_id) : undefined
+                }
                 onStatusChange={setStatus}
                 onDelete={removeTask}
               />

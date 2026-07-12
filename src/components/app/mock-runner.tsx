@@ -81,6 +81,18 @@ export function MockRunner({
     return () => window.clearInterval(id);
   }, [questions.length, doSubmit]);
 
+  // محاكاة قاعة الامتحان: تحذير قبل مغادرة الصفحة والاختبار جارٍ
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (!submittedRef.current) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
+
   async function download() {
     setDownloading(true);
     try {

@@ -24,6 +24,7 @@ export default function MockPage() {
   const { saveAttempt } = useMockAttempts();
   const { addTask } = useTasks();
 
+  const [instructions, setInstructions] = useState<LocalMockExam | null>(null);
   const [taking, setTaking] = useState<LocalMockExam | null>(null);
   const [finished, setFinished] = useState<FinishedState | null>(null);
 
@@ -31,6 +32,65 @@ export default function MockPage() {
     const m = new Map(subjects.map((s) => [s.id, s.name_ar]));
     return (id: string | null) => (id ? m.get(id) : undefined);
   }, [subjects]);
+
+  // شاشة التعليمات — مثل غلاف ورقة الامتحان الحقيقية
+  if (instructions && !taking && !finished) {
+    const exam = instructions;
+    return (
+      <div className="mx-auto flex max-w-lg flex-col gap-6">
+        <header className="flex flex-col items-center gap-1 text-center">
+          <span className="text-secondary text-text-muted">اختبار محاكاة</span>
+          <h1 className="text-h1 text-text-primary">{exam.title}</h1>
+          <p className="text-body text-text-secondary">
+            {subjectName(exam.subject_id) ?? ""} · {exam.question_ids.length} سؤال ·{" "}
+            {exam.duration_minutes} دقيقة
+          </p>
+        </header>
+
+        <Card className="border-brand-500/40">
+          <CardHeader>
+            <CardTitle className="text-h3">تعليمات الاختبار — اقرأها كأنك بالقاعة</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-3 text-body text-text-secondary">
+              <li className="flex gap-2">
+                <span className="text-brand-400">١.</span>
+                المؤقّت حقيقي ولا يتوقّف إطلاقاً — تماماً كقاعة الامتحان.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-brand-400">٢.</span>
+                عند انتهاء الوقت يُسلَّم الاختبار تلقائياً بما أجبت.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-brand-400">٣.</span>
+                جهّز ورقة وقلماً للمسودة، وضع هاتفك بوضع عدم الإزعاج.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-brand-400">٤.</span>
+                لا يمكن تعديل الإجابات بعد التسليم — راجِع قبل ما تسلّم.
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <div className="flex items-center gap-3">
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={() => {
+              setTaking(exam);
+              setInstructions(null);
+            }}
+          >
+            أنا جاهز — ابدأ الآن
+          </Button>
+          <Button variant="secondary" onClick={() => setInstructions(null)}>
+            رجوع
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // شاشة الاختبار الجاري
   if (taking && !finished) {
@@ -155,7 +215,7 @@ export default function MockPage() {
                     <Clock className="size-4" aria-hidden />
                     {e.duration_minutes} دقيقة
                   </span>
-                  <Button size="sm" onClick={() => setTaking(e)}>
+                  <Button size="sm" onClick={() => setInstructions(e)}>
                     <Play aria-hidden /> ابدأ الاختبار
                   </Button>
                 </div>

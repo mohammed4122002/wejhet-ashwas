@@ -34,18 +34,18 @@ const DialogContent = React.forwardRef<
       ref={ref}
       dir="rtl"
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-card border border-strong bg-bg-raised p-6 shadow-glow-brand data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "fixed left-1/2 top-1/2 z-50 flex max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-card border border-strong bg-bg-raised p-6 shadow-glow-brand data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className
       )}
       {...props}
     >
-      {children}
       <DialogPrimitive.Close
-        className="absolute end-4 top-4 rounded-pill p-1 text-text-muted transition-colors hover:text-text-primary focus:outline-none"
+        className="absolute end-4 top-4 z-10 rounded-pill bg-bg-raised/80 p-1 text-text-muted backdrop-blur transition-colors hover:text-text-primary focus:outline-none"
         aria-label="إغلاق"
       >
         <X className="size-5" />
       </DialogPrimitive.Close>
+      {children}
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>
 ));

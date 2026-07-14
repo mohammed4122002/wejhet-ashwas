@@ -158,7 +158,7 @@ export function PomodoroDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="gap-3">
         <DialogHeader>
           <DialogTitle>بومودورو</DialogTitle>
           <DialogDescription>{task.title}</DialogDescription>
@@ -191,7 +191,7 @@ export function PomodoroDialog({
         </div>
 
         {/* المؤقّت */}
-        <div className="flex flex-col items-center gap-4 py-1">
+        <div className="flex flex-col items-center gap-3">
           <span
             className={cn(
               "text-secondary rounded-pill px-3 py-1",
@@ -205,7 +205,7 @@ export function PomodoroDialog({
 
           <div
             className={cn(
-              "flex size-44 items-center justify-center rounded-full border-4 tabular-nums",
+              "flex size-40 items-center justify-center rounded-full border-4 tabular-nums",
               running && phase === "focus"
                 ? "border-brand-500 shadow-glow-brand"
                 : running

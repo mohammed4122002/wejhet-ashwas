@@ -7,6 +7,7 @@ import type { TaskStatus } from "@/lib/supabase/database.types";
 import { Card } from "@/components/ui/card";
 import { TaskStatusControl } from "./task-status-control";
 import { PomodoroDialog } from "./pomodoro-dialog";
+import { usePomodoroLog } from "@/hooks/use-pomodoro-log";
 import { cn } from "@/lib/utils";
 
 export function TaskCard({
@@ -75,6 +76,8 @@ export function TaskCard({
           بومودورو
         </button>
 
+        <TaskTimeSummary taskId={task.id} />
+
         {onPostpone && (
           <button
             type="button"
@@ -102,8 +105,22 @@ export function TaskCard({
           task={task}
           open={pomodoroOpen}
           onOpenChange={setPomodoroOpen}
+          onComplete={() => onStatusChange(task, "done")}
         />
       )}
     </Card>
+  );
+}
+
+/** ملخّص الوقت الفعلي والجلسات للمهمة (يظهر فقط بعد أول جلسة). */
+function TaskTimeSummary({ taskId }: { taskId: string }) {
+  const { totalMinutes, sessions } = usePomodoroLog(taskId);
+  if (sessions.length === 0) return null;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-secondary text-text-muted">
+      <Clock className="size-3.5" aria-hidden />
+      {totalMinutes} دقيقة · {sessions.length}{" "}
+      {sessions.length === 1 ? "جلسة" : "جلسات"}
+    </span>
   );
 }

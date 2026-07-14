@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, HelpCircle, Check } from "lucide-react";
+import { Play, Pause, RotateCcw, HelpCircle, Check, CircleCheckBig } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,17 +26,41 @@ function fmt(totalSeconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+const ORDINALS = [
+  "",
+  "الأولى",
+  "الثانية",
+  "الثالثة",
+  "الرابعة",
+  "الخامسة",
+  "السادسة",
+  "السابعة",
+  "الثامنة",
+  "التاسعة",
+  "العاشرة",
+];
+
+/** "الجلسة الثالثة" لصغار الأرقام، و"الجلسة رقم N" لما بعدها. */
+function sessionLabel(n: number): string {
+  return ORDINALS[n] ? `الجلسة ${ORDINALS[n]}` : `الجلسة رقم ${n}`;
+}
+
 /** بومودورو مربوط بمهمة محددة (خطة §أ.6) + صندوق الشكوك الملاصق (خطة §أ.14). */
 export function PomodoroDialog({
   task,
   open,
   onOpenChange,
+  onComplete,
 }: {
   task: LocalTask;
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** يُستدعى عند الضغط على "أنهيت المهمة" — يعلّم المهمة تمّت. */
+  onComplete?: () => void;
 }) {
-  const { totalMinutes, logSession } = usePomodoroLog(task.id);
+  const { sessions, totalMinutes, logSession } = usePomodoroLog(task.id);
+  const completedSessions = sessions.length;
+  const isDone = task.status === "done";
 
   const [focusMin, setFocusMin] = useState(DEFAULT_FOCUS);
   const [breakMin, setBreakMin] = useState(DEFAULT_BREAK);
@@ -114,6 +138,24 @@ export function PomodoroDialog({
     }
   }
 
+  /** إنهاء المهمة: يسجّل الوقت الجزئي إن وُجد، يعلّم المهمة تمّت، ويغلق. */
+  async function finishTask() {
+    setRunning(false);
+    endRef.current = null;
+    // لو كنا بجلسة تركيز جارية، سجّل الدقائق المنقضية حتى الآن
+    if (phase === "focus" && startedAtRef.current) {
+      const elapsedMin = Math.round((focusMin * 60 - remaining) / 60);
+      if (elapsedMin >= 1) {
+        await logSession(task.id, elapsedMin, startedAtRef.current, nowISO());
+      }
+      startedAtRef.current = null;
+    }
+    onComplete?.();
+    onOpenChange(false);
+  }
+
+  const currentOrdinal = sessionLabel(completedSessions + 1);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -122,8 +164,34 @@ export function PomodoroDialog({
           <DialogDescription>{task.title}</DialogDescription>
         </DialogHeader>
 
+        {/* عدّاد الجلسات: نقاط للمكتملة + النقطة الحالية */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-secondary text-text-secondary">
+            {phase === "focus" ? currentOrdinal : "استراحة قصيرة"}
+          </span>
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            {Array.from({ length: Math.max(completedSessions + 1, 4) }).map((_, i) => {
+              const isCompleted = i < completedSessions;
+              const isCurrent = i === completedSessions;
+              return (
+                <span
+                  key={i}
+                  className={cn(
+                    "size-2.5 rounded-full transition-colors",
+                    isCompleted
+                      ? "bg-brand-500"
+                      : isCurrent && running && phase === "focus"
+                        ? "bg-brand-400 animate-pulse"
+                        : "bg-bg-raised border border-strong"
+                  )}
+                />
+              );
+            })}
+          </div>
+        </div>
+
         {/* المؤقّت */}
-        <div className="flex flex-col items-center gap-4 py-2">
+        <div className="flex flex-col items-center gap-4 py-1">
           <span
             className={cn(
               "text-secondary rounded-pill px-3 py-1",
@@ -137,7 +205,7 @@ export function PomodoroDialog({
 
           <div
             className={cn(
-              "flex size-48 items-center justify-center rounded-full border-4 tabular-nums",
+              "flex size-44 items-center justify-center rounded-full border-4 tabular-nums",
               running && phase === "focus"
                 ? "border-brand-500 shadow-glow-brand"
                 : running
@@ -192,11 +260,40 @@ export function PomodoroDialog({
               </label>
             </div>
           )}
-
-          <p className="text-secondary text-text-muted">
-            الوقت الفعلي المسجّل لهذه المهمة: {totalMinutes} دقيقة
-          </p>
         </div>
+
+        {/* حصيلة المهمة: جلسات + وقت فعلي */}
+        <div className="flex items-center justify-center gap-6 rounded-input border border-subtle bg-bg-surface py-3 text-center">
+          <div className="flex flex-col">
+            <span className="text-h2 tabular-nums text-text-primary">
+              {completedSessions}
+            </span>
+            <span className="text-secondary text-text-muted">
+              {completedSessions === 1 ? "جلسة" : "جلسات"} مكتملة
+            </span>
+          </div>
+          <div className="h-8 w-px bg-bg-raised" />
+          <div className="flex flex-col">
+            <span className="text-h2 tabular-nums text-text-primary">
+              {totalMinutes}
+            </span>
+            <span className="text-secondary text-text-muted">دقيقة تركيز</span>
+          </div>
+        </div>
+
+        {/* زر إنهاء المهمة */}
+        {!isDone ? (
+          <Button
+            onClick={finishTask}
+            className="w-full bg-status-done text-text-on-brand hover:bg-status-done/90"
+          >
+            <CircleCheckBig aria-hidden /> أنهيت هذه المهمة
+          </Button>
+        ) : (
+          <p className="flex items-center justify-center gap-2 rounded-input border border-strong bg-status-done/5 py-2.5 text-body text-status-done">
+            <CircleCheckBig className="size-4" aria-hidden /> هذه المهمة تمّت
+          </p>
+        )}
 
         {/* صندوق الشكوك الملاصق — أقل احتكاك ممكن */}
         <DoubtInline task={task} />

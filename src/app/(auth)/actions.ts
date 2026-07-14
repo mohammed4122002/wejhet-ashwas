@@ -29,26 +29,28 @@ export async function signupAction(
   }
 
   const supabase = await createClient();
-  const siteURL = await getSiteURL();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { emailRedirectTo: `${siteURL}/auth/callback?next=/onboarding/track` },
-  });
+  const { data, error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
     return { error: translateAuthError(error.message) };
   }
 
-  // لو تفعيل تأكيد البريد مطلوب، لا تُنشأ جلسة فوراً.
+  // دخول مباشر بلا تأكيد بريد: لو ما رجعت جلسة، ندخل فوراً بنفس البيانات.
   if (!data.session) {
-    return {
-      message:
-        "تم إنشاء حسابك! تفقّد بريدك الإلكتروني وأكّد الحساب لإكمال التسجيل.",
-    };
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError) {
+      // نادر: "تأكيد البريد" مفعّل بلوحة Supabase — أطفئه للدخول المباشر.
+      return {
+        message:
+          "تم إنشاء حسابك. لإكمال الدخول المباشر، أطفئ «تأكيد البريد» من إعدادات Supabase.",
+      };
+    }
   }
 
-  // جلسة فعّالة مباشرة ← لصفحة اختيار الفرع الإجبارية.
+  // جلسة فعّالة ← لصفحة اختيار الفرع الإجبارية.
   redirect("/onboarding/track");
 }
 

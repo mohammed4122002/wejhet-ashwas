@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { FormMessage } from "@/components/auth/form-message";
+import { GoogleButton } from "@/components/auth/google-button";
+import { OrDivider } from "@/components/auth/or-divider";
 
 const initial: AuthState = {};
 
@@ -29,6 +31,8 @@ export default function SignupPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <GoogleButton label="التسجيل عبر Google" />
+        <OrDivider />
         <form action={formAction} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">البريد الإلكتروني</Label>

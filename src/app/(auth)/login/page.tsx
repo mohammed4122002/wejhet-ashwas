@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { FormMessage } from "@/components/auth/form-message";
+import { GoogleButton } from "@/components/auth/google-button";
+import { OrDivider } from "@/components/auth/or-divider";
 
 const initial: AuthState = {};
 
@@ -31,6 +33,8 @@ function LoginForm() {
         <CardDescription>أهلاً برجوعك. أكمل رحلتك من حيث وقفت.</CardDescription>
       </CardHeader>
       <CardContent>
+        <GoogleButton label="الدخول عبر Google" />
+        <OrDivider />
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="next" value={next} />
           <div className="flex flex-col gap-2">

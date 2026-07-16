@@ -131,6 +131,39 @@ export function useTasks(dateISO: string = todayISO()) {
     await localDelete("tasks", id);
   }
 
+  /**
+   * تعليم درس كمُنجز/غير منجز مباشرة من فهرس «رحلتي».
+   * done=true ⇒ ينشئ مهمة مُنجزة للدرس (تُضيء المكافأة وتغذّي الخريطة).
+   * done=false ⇒ يحذف علامات الإنجاز اليدوية لهذا الدرس.
+   */
+  async function toggleLessonDone(
+    lessonId: string,
+    lessonName: string,
+    subjectId: string | null,
+    done: boolean
+  ) {
+    const db = getDB();
+    if (done) {
+      const row = buildTask({
+        title: lessonName,
+        task_date: todayISO(),
+        subject_id: subjectId,
+        lesson_id: lessonId,
+        task_type: "study",
+      });
+      row.status = "done";
+      row.completed_at = nowISO();
+      await localUpsert("tasks", row);
+    } else {
+      const marks = await db.tasks
+        .where("user_id")
+        .equals(userId)
+        .and((t) => t.lesson_id === lessonId && t.status === "done")
+        .toArray();
+      for (const m of marks) await localDelete("tasks", m.id);
+    }
+  }
+
   return {
     allTasks,
     tasksForDate,
@@ -140,5 +173,6 @@ export function useTasks(dateISO: string = todayISO()) {
     setStatus,
     postponeToToday,
     removeTask,
+    toggleLessonDone,
   };
 }

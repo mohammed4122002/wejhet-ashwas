@@ -88,9 +88,9 @@ export function nextStep(i: NextStepInput): NextStep {
   return {
     id: "day-done",
     title: "أنجزت مهام اليوم — أحسنت! 🎉",
-    description: "خذ استراحة مستحقة، أو اختبر نفسك باختبار محاكاة قصير.",
-    href: "/app/mock",
-    cta: "جرّب محاكاة",
+    description: "خذ استراحة مستحقة، أو شوف كم تقدّمت على خارطة رحلتك.",
+    href: "/app/progress",
+    cta: "شوف رحلتك",
   };
 }
 

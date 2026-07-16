@@ -8,7 +8,6 @@ import {
   HelpCircle,
   Library,
   BarChart3,
-  FileCheck,
   Sparkles,
   Trophy,
 } from "lucide-react";
@@ -20,7 +19,6 @@ const LINKS = [
   { href: "/app/bank", label: "بنك الأسئلة", icon: Library },
   { href: "/app/progress", label: "رحلتي", icon: BarChart3 },
   { href: "/app/rewards", label: "إنجازي", icon: Sparkles },
-  { href: "/app/mock", label: "المحاكاة", icon: FileCheck },
   { href: "/app/compete", label: "التنافسي", icon: Trophy },
   { href: "/app/doubts", label: "الشكوك", icon: HelpCircle },
 ];

@@ -1,43 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, CheckCircle2, Circle, Target } from "lucide-react";
+import { ChevronDown, Check, Target } from "lucide-react";
 import { useCurriculum } from "@/hooks/use-curriculum";
 import { useHeatmap } from "@/hooks/use-heatmap";
+import { useTasks } from "@/hooks/use-tasks";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { masteryRatio, heatLevel } from "@/lib/domain/heatmap";
+import { masteryRatio } from "@/lib/domain/heatmap";
 import { cn } from "@/lib/utils";
-
-/** لون خلية الخريطة الحرارية حسب درجة التشبّع (design.md §6). */
-const HEAT: Record<number, string> = {
-  0: "bg-bg-surface border border-strong",
-  1: "bg-brand-500/20",
-  2: "bg-brand-500/40",
-  3: "bg-brand-500/70",
-  4: "bg-brand-500",
-};
 
 export default function ProgressPage() {
   const { subjects, unitsOf, lessonsOf } = useCurriculum();
   const { progress, subjectMastery, masteredLessonIds } = useHeatmap();
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const { toggleLessonDone } = useTasks();
+  const [openSubject, setOpenSubject] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-h1 text-text-primary">خارطة رحلتك</h1>
         <p className="text-body text-text-secondary">
-          كل وحدة محطة على طريقك — تُنجَز من مهامك الحقيقية وأسئلتك الصحيحة، محطة
-          بعد محطة حتى الوجهة.
+          فهرس موادك — علّم كل درس تخلّصه ✓، وشوف تقدّمك يمتلئ محطة بعد محطة نحو
+          الوجهة.
         </p>
       </header>
 
       {subjects.map((s) => {
         const pct = Math.round(subjectMastery(s.id) * 100);
         const units = unitsOf(s.id);
-        const isOpen = expanded === s.id;
+        const isOpen = openSubject === s.id;
 
-        // أضعف محطة بدأ فيها (0 < إتقان < 1) — «ركّز هنا»
+        // أضعف وحدة بدأ فيها (للتركيز)
         const startedRatios = units
           .map((u) => {
             const p = progress.get(u.id);
@@ -53,8 +46,8 @@ export default function ProgressPage() {
             <CardHeader>
               <button
                 type="button"
-                onClick={() => setExpanded(isOpen ? null : s.id)}
-                className="flex w-full flex-col gap-3"
+                onClick={() => setOpenSubject(isOpen ? null : s.id)}
+                className="flex w-full flex-col gap-2"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-h3 text-text-primary">{s.name_ar}</span>
@@ -66,120 +59,83 @@ export default function ProgressPage() {
                     />
                   </span>
                 </div>
-                {/* شريط التقدّم */}
                 <div className="h-2 w-full overflow-hidden rounded-pill bg-bg-raised">
                   <div
                     className="h-full rounded-pill bg-brand-500 transition-all"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                {/* خريطة حرارية: خلية لكل وحدة */}
-                <div className="flex flex-wrap gap-1.5">
-                  {units.map((u) => {
-                    const p = progress.get(u.id);
-                    const level = p ? heatLevel(masteryRatio(p)) : 0;
-                    return (
-                      <span
-                        key={u.id}
-                        title={`${u.name_ar}: ${p?.masteredLessons ?? 0}/${p?.totalLessons ?? 0}`}
-                        className={cn("size-6 rounded", HEAT[level])}
-                      />
-                    );
-                  })}
-                </div>
               </button>
             </CardHeader>
 
             {isOpen && (
-              <CardContent className="flex flex-col">
+              <CardContent className="flex flex-col gap-5">
                 {units.length === 0 && (
                   <p className="text-secondary text-text-muted">
                     لا توجد وحدات لهذه المادة بعد.
                   </p>
                 )}
 
-                {/* مسار المحطات — وحدة بوحدة نحو الوجهة */}
-                {units.map((u, idx) => {
+                {units.map((u) => {
                   const p = progress.get(u.id);
-                  const ratio = p ? masteryRatio(p) : 0;
-                  const unitPct = Math.round(ratio * 100);
-                  const isDone = (p?.totalLessons ?? 0) > 0 && ratio >= 1;
-                  const started = ratio > 0 && !isDone;
-                  const isFocus = focusUnitId === u.id;
-                  const isLast = idx === units.length - 1;
                   const lessons = lessonsOf(u.id);
+                  const isFocus = focusUnitId === u.id;
 
                   return (
-                    <div key={u.id} className="flex gap-3">
-                      {/* عمود المحطة: رقم + خط واصل */}
-                      <div className="flex flex-col items-center">
-                        <span
-                          className={cn(
-                            "flex size-8 shrink-0 items-center justify-center rounded-pill text-secondary font-medium tabular-nums transition-colors",
-                            isDone
-                              ? "bg-status-done text-text-on-brand shadow-glow-success"
-                              : started
-                                ? "bg-brand-500 text-text-on-brand shadow-glow-brand"
-                                : "border border-strong bg-bg-raised text-text-muted"
+                    <div key={u.id} className="flex flex-col gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <h3 className="text-h3 text-text-secondary">{u.name_ar}</h3>
+                          {isFocus && (
+                            <span className="inline-flex items-center gap-1 rounded-pill bg-accent-copper/10 px-2 py-0.5 text-secondary text-accent-copper">
+                              <Target className="size-3" aria-hidden />
+                              ركّز هنا
+                            </span>
                           )}
-                        >
-                          {isDone ? <CheckCircle2 className="size-4" aria-hidden /> : idx + 1}
                         </span>
-                        {!isLast && (
-                          <div
-                            className={cn(
-                              "w-px flex-1 border-s",
-                              isDone ? "border-status-done/40" : "border-subtle"
-                            )}
-                          />
-                        )}
+                        <span className="text-secondary tabular-nums text-text-muted">
+                          {p?.masteredLessons ?? 0}/{p?.totalLessons ?? 0}
+                        </span>
                       </div>
 
-                      {/* محتوى المحطة */}
-                      <div className={cn("flex min-w-0 flex-1 flex-col gap-2", !isLast && "pb-6")}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="flex items-center gap-2">
-                            <h3 className="text-h3 text-text-primary">{u.name_ar}</h3>
-                            {isFocus && (
-                              <span className="inline-flex items-center gap-1 rounded-pill bg-accent-copper/10 px-2 py-0.5 text-secondary text-accent-copper">
-                                <Target className="size-3" aria-hidden />
-                                ركّز هنا
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-secondary tabular-nums text-text-muted">
-                            {p?.masteredLessons ?? 0}/{p?.totalLessons ?? 0} · {unitPct}%
-                          </span>
-                        </div>
-
-                        <div className="h-1.5 w-full overflow-hidden rounded-pill bg-bg-raised">
-                          <div
-                            className={cn(
-                              "h-full rounded-pill transition-all",
-                              isDone ? "bg-status-done" : "bg-brand-500"
-                            )}
-                            style={{ width: `${unitPct}%` }}
-                          />
-                        </div>
-
-                        <ul className="flex flex-col gap-1.5">
-                          {lessons.map((l) => {
-                            const done = masteredLessonIds.has(l.id);
-                            return (
-                              <li key={l.id} className="flex items-center gap-2 text-body">
-                                {done ? (
-                                  <CheckCircle2 className="size-4 shrink-0 text-status-done" aria-hidden />
-                                ) : (
-                                  <Circle className="size-4 shrink-0 text-status-todo" aria-hidden />
-                                )}
-                                <span className={done ? "text-text-primary" : "text-text-secondary"}>
+                      {/* دروس الوحدة كعناصر فهرس قابلة للتعليم */}
+                      <ul className="flex flex-col">
+                        {lessons.map((l) => {
+                          const done = masteredLessonIds.has(l.id);
+                          return (
+                            <li key={l.id}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void toggleLessonDone(l.id, l.name_ar, s.id, !done)
+                                }
+                                className="flex w-full items-center gap-3 rounded-input px-2 py-2.5 text-start transition-colors hover:bg-bg-raised"
+                              >
+                                <span
+                                  className={cn(
+                                    "flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                                    done
+                                      ? "border-status-done bg-status-done text-text-on-brand"
+                                      : "border-strong bg-transparent"
+                                  )}
+                                >
+                                  {done && <Check className="size-3.5" aria-hidden />}
+                                </span>
+                                <span
+                                  className={cn(
+                                    "text-body",
+                                    done
+                                      ? "text-text-muted line-through"
+                                      : "text-text-primary"
+                                  )}
+                                >
                                   {l.name_ar}
                                 </span>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   );
                 })}

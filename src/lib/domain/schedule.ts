@@ -142,25 +142,28 @@ export function generateWeeklySlots(
   const totalSessions = sessionsPerDay.reduce((a, b) => a + b, 0);
   if (totalSessions === 0 || subjects.length === 0) return [];
 
-  // طابور مواد موزّع دوّاراً حتى ما تتكدّس مادة واحدة بيوم واحد
+  // حصص كل مادة (largest remainder) ثم نوزّعها بتنويع داخل اليوم
   const allocation = allocateSessions(subjects, totalSessions, weighted, from);
-  const queue: SchedulableSubject[] = [];
-  const pools = allocation.map((a) => ({ subject: a.subject, left: a.count }));
-  let anyLeft = true;
-  while (anyLeft) {
-    anyLeft = false;
-    for (const p of pools) {
-      if (p.left > 0) {
-        queue.push(p.subject);
-        p.left -= 1;
-        anyLeft = true;
-      }
-    }
+  const pools = allocation
+    .map((a) => ({ subject: a.subject, left: a.count }))
+    .filter((p) => p.left > 0);
+
+  /**
+   * يختار المادة التالية لهذا اليوم: يفضّل مادة لم تُستخدم اليوم بعد (تنويع)،
+   * ومن بينها الأكثر حصصاً متبقّية؛ لا يكرّر مادة إلا لو نفدت المواد المختلفة.
+   */
+  function pickSubject(usedToday: Set<string>): SchedulableSubject | null {
+    const available = pools.filter((p) => p.left > 0);
+    if (available.length === 0) return null;
+    const fresh = available.filter((p) => !usedToday.has(p.subject.id));
+    const candidates = fresh.length ? fresh : available;
+    const best = candidates.reduce((a, b) => (b.left > a.left ? b : a));
+    best.left -= 1;
+    return best.subject;
   }
 
   const sessionMin = sessionLen * 60;
   const slots: GeneratedSlot[] = [];
-  let qi = 0;
 
   for (let day = 0; day < 7; day++) {
     const needed = sessionsPerDay[day];
@@ -170,6 +173,7 @@ export function generateWeeklySlots(
       .filter((b) => b.day_of_week === day)
       .map((b) => [toMin(b.start_time), toMin(b.end_time)] as const);
     const placed: Array<readonly [number, number]> = [];
+    const usedToday = new Set<string>();
 
     // نمشي ساعة بساعة من ساعة البدء ونحجز أول فراغ حر
     for (
@@ -184,9 +188,11 @@ export function generateWeeklySlots(
       );
       if (clash) continue;
 
+      const subject = pickSubject(usedToday);
+      if (!subject) break; // نفدت الحصص المخصّصة
+
       placed.push([s, e]);
-      const subject = queue[qi % queue.length];
-      qi += 1;
+      usedToday.add(subject.id);
       slots.push({
         day_of_week: day,
         start_time: fromMin(s),

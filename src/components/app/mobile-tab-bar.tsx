@@ -23,7 +23,6 @@ const TABS = [
 const MORE_PATHS = [
   "/app/more",
   "/app/rewards",
-  "/app/mock",
   "/app/compete",
   "/app/doubts",
   "/app/settings",

@@ -97,6 +97,30 @@ ok("slots start at 16:00", slots.some((s) => s.start_time === "16:00"));
 ok("slot has 1h length", slots[0].end_time === "17:00" || slots[0].end_time === "18:00");
 ok("no free hours → no slots", generateWeeklySlots(subs, { freeHoursByDay: [0,0,0,0,0,0,0] }, true).length === 0);
 
+// تنويع المواد داخل اليوم: يوم واحد فيه 3 فترات + 3 مواد متساوية ⇒ 3 مواد مختلفة
+const varietySubs = [
+  { id: "a", name: "رياضيات" },
+  { id: "b", name: "فيزياء" },
+  { id: "c", name: "كيمياء" },
+];
+const varietySlots = generateWeeklySlots(
+  varietySubs,
+  { freeHoursByDay: [3, 0, 0, 0, 0, 0, 0], sessionLengthHours: 1, startHour: 16 },
+  false,
+  FROM
+);
+const daySubjects = new Set(varietySlots.map((s) => s.subject_id));
+ok("multi-subject day: 3 sessions → 3 distinct subjects", varietySlots.length === 3 && daySubjects.size === 3);
+
+// حتى مع تفاوت الحصص، لا تُكرَّر مادة في اليوم قبل استنفاد بقية المواد
+const skewSlots = generateWeeklySlots(
+  varietySubs,
+  { freeHoursByDay: [2, 0, 0, 0, 0, 0, 0], sessionLengthHours: 1, startHour: 16 },
+  false,
+  FROM
+);
+ok("multi-subject day: 2 sessions → 2 distinct subjects (no early repeat)", new Set(skewSlots.map((s) => s.subject_id)).size === 2);
+
 console.log("today generation:");
 const daySlots = [
   { id: "s1", user_id: "u", day_of_week: 6, start_time: "16:00", end_time: "17:00", title: "T1", subject_id: "a", is_recurring: true, created_at: null, updated_at: null },

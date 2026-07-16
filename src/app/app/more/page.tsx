@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   Sparkles,
-  FileCheck,
   Trophy,
   HelpCircle,
   Settings,
@@ -15,12 +14,6 @@ const ITEMS = [
     label: "إنجازي",
     desc: "مكافآتك البصرية وشاراتك",
     icon: Sparkles,
-  },
-  {
-    href: "/app/mock",
-    label: "اختبارات المحاكاة",
-    desc: "اختبر نفسك بزمن حقيقي مثل الامتحان",
-    icon: FileCheck,
   },
   {
     href: "/app/compete",

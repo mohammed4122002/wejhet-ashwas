@@ -15,7 +15,9 @@ import {
   Plus,
   Trash2,
   Clock,
+  SunMoon,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { usePrefs } from "@/hooks/use-prefs";
 import { useSchedule } from "@/hooks/use-schedule";
 import { REWARD_SYSTEMS, WEEKDAYS_AR } from "@/lib/domain/constants";
@@ -55,6 +57,23 @@ export default function SettingsPage() {
 
       <ProfileSection />
       <SecuritySection />
+
+      {/* المظهر: فاتح/داكن */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <SunMoon className="size-5 text-brand-400" aria-hidden />
+            المظهر
+          </CardTitle>
+          <CardDescription>
+            اختر ما يريح عينيك — الوضع الداكن للتركيز الليلي، والفاتح لأجواء
+            النهار. اختيارك يُحفظ ويعمل حتى بدون إنترنت.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeToggle />
+        </CardContent>
+      </Card>
 
       {/* نظام المكافأة */}
       <Card>

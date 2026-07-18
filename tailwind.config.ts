@@ -4,8 +4,12 @@ import type { Config } from "tailwindcss";
  * كل التوكنز هون مستخرجة حرفياً من design.md.
  * ممنوع إضافة أي قيمة لونية/مسافة/خط خارج هذا الملف أو ملف design.md.
  */
+/** يبني لون توكن من قناة RGB متغيّرة مع دعم شفافية Tailwind `/NN`. */
+const c = (v: string) => `rgb(var(${v}) / <alpha-value>)`;
+
 const config: Config = {
-  darkMode: "class", // الوضع الوحيد بالـMVP هو dark — نثبّته يدوياً على <html>
+  // الوضع يُدار عبر متغيّرات CSS على <html.light> — التوكنز تتبدّل تلقائياً.
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -16,41 +20,41 @@ const config: Config = {
       colors: {
         // ============ خلفيات (design.md §2) ============
         bg: {
-          base: "#150B0F",
-          surface: "#221219",
-          raised: "#2E1820",
-          overlay: "rgba(21, 11, 15, 0.85)",
+          base: c("--bg-base"),
+          surface: c("--bg-surface"),
+          raised: c("--bg-raised"),
+          overlay: "rgb(var(--overlay) / 0.85)",
         },
         // ============ التدرّج الأساسي (هوية العلامة) ============
         brand: {
-          400: "#F08157",
-          500: "#E0603F",
-          600: "#C6472C",
-          glow: "#FBC79A",
+          400: c("--brand-400"),
+          500: c("--brand-500"),
+          600: c("--brand-600"),
+          glow: c("--brand-glow"),
         },
         // ============ النحاسي/الذهبي (القوس بالشعار) ============
         accent: {
-          copper: "#D97757",
-          gold: "#E0A868",
+          copper: c("--accent-copper"),
+          gold: c("--accent-gold"),
         },
         // ============ نصوص ============
         text: {
-          primary: "#F5EDE8",
-          secondary: "#B8A79E",
-          muted: "#7A6B64",
-          "on-brand": "#150B0F",
+          primary: c("--text-primary"),
+          secondary: c("--text-secondary"),
+          muted: c("--text-muted"),
+          "on-brand": c("--text-on-brand"),
         },
         // ============ حالات دلالية (Kanban) ============
         status: {
-          todo: "#7A6B64",
-          progress: "#E0603F",
-          done: "#4CAF7D",
+          todo: c("--status-todo"),
+          progress: c("--status-progress"),
+          done: c("--status-done"),
         },
       },
       // ============ حدود وفواصل ============
       borderColor: {
-        subtle: "rgba(245, 237, 232, 0.08)",
-        strong: "rgba(245, 237, 232, 0.16)",
+        subtle: "rgb(var(--border) / 0.08)",
+        strong: "rgb(var(--border) / 0.16)",
       },
       // ============ الحواف الدائرية (design.md §4) ============
       borderRadius: {

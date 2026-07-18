@@ -3,61 +3,105 @@
 @tailwind utilities;
 
 /*
- * متغيّرات CSS — نسخة طبق الأصل من design.md §2.
- * تُستخدم للأماكن اللي ما بتقدر توكنز Tailwind توصلها مباشرة
- * (SVG خرائط المكافأة، shadcn/ui، تدرّجات مخصّصة).
- * التطبيق كله Dark Mode دائماً — لا يوجد وضع فاتح بالـMVP.
+ * توكنز الألوان كقنوات RGB (فراغ يفصلها) — ليدعم Tailwind شفافية `/NN`.
+ * الوضع الداكن هو الافتراضي (:root) — نسخة طبق الأصل من design.md §2.
+ * الوضع الفاتح (html.light) مستوحى من هوية الغروب الدافئة (كريمي/مرجاني/بنفسجي
+ * غباري) — نفس لون العلامة المرجاني في الوضعين للحفاظ على الهوية.
+ * التبديل يتم بإضافة/إزالة صنف `light` على <html> (مع حفظ الاختيار محلياً).
  */
 :root {
-  /* خلفيات */
-  --bg-base: #150b0f;
-  --bg-surface: #221219;
-  --bg-surface-raised: #2e1820;
-  --bg-overlay: rgba(21, 11, 15, 0.85);
+  color-scheme: dark;
 
-  /* التدرّج الأساسي (هوية العلامة) */
-  --brand-500: #e0603f;
-  --brand-600: #c6472c;
-  --brand-400: #f08157;
-  --brand-glow: #fbc79a;
+  /* خلفيات */
+  --bg-base: 21 11 15; /* #150B0F */
+  --bg-surface: 34 18 25; /* #221219 */
+  --bg-raised: 46 24 32; /* #2E1820 */
+  --overlay: 21 11 15; /* قناة طبقة التعتيم (تُطبَّق بشفافية) */
+
+  /* التدرّج الأساسي (هوية العلامة) — ثابت في الوضعين */
+  --brand-400: 240 129 87; /* #F08157 */
+  --brand-500: 224 96 63; /* #E0603F */
+  --brand-600: 198 71 44; /* #C6472C */
+  --brand-glow: 251 199 154; /* #FBC79A */
 
   /* النحاسي/الذهبي */
-  --accent-copper: #d97757;
-  --accent-gold: #e0a868;
+  --accent-copper: 217 119 87; /* #D97757 */
+  --accent-gold: 224 168 104; /* #E0A868 */
 
   /* نصوص */
-  --text-primary: #f5ede8;
-  --text-secondary: #b8a79e;
-  --text-muted: #7a6b64;
-  --text-on-brand: #150b0f;
+  --text-primary: 245 237 232; /* #F5EDE8 */
+  --text-secondary: 184 167 158; /* #B8A79E */
+  --text-muted: 122 107 100; /* #7A6B64 */
+  --text-on-brand: 21 11 15; /* #150B0F */
 
   /* حالات دلالية (Kanban) */
-  --status-todo: #7a6b64;
-  --status-in-progress: #e0603f;
-  --status-done: #4caf7d;
+  --status-todo: 122 107 100;
+  --status-progress: 224 96 63;
+  --status-done: 76 175 125; /* #4CAF7D */
 
-  /* حدود وفواصل */
-  --border-subtle: rgba(245, 237, 232, 0.08);
-  --border-strong: rgba(245, 237, 232, 0.16);
+  /* قناة الحدود (تُطبَّق بشفافية منخفضة) + اختصارات جاهزة */
+  --border: 245 237 232;
+  --border-subtle: rgb(var(--border) / 0.08);
+  --border-strong: rgb(var(--border) / 0.16);
 
-  /* توهّج */
+  /* توهّج (ثابت — يعمل في الوضعين) */
   --glow-brand: 0 0 24px rgba(224, 96, 63, 0.35);
   --glow-success: 0 0 20px rgba(76, 175, 125, 0.3);
 }
 
+/* ============ الوضع الفاتح — غروب دافئ (design.md لاحقاً) ============ */
+html.light {
+  color-scheme: light;
+
+  /* خلفيات: رمل كريمي دافئ للصفحة، وبطاقات أفتح شبه بيضاء */
+  --bg-base: 243 235 225; /* #F3EBE1 */
+  --bg-surface: 255 251 246; /* #FFFBF6 */
+  --bg-raised: 239 224 211; /* #EFE0D3 */
+  --overlay: 243 235 225;
+
+  /* العلامة كما هي (هوية موحّدة) */
+  --brand-400: 240 129 87;
+  --brand-500: 224 96 63;
+  --brand-600: 198 71 44;
+  --brand-glow: 246 201 168; /* خوخي ناعم */
+
+  /* نحاسي/ذهبي أعمق ليقرأ بوضوح على خلفية فاتحة */
+  --accent-copper: 180 85 47; /* #B4552F */
+  --accent-gold: 176 122 46; /* #B07A2E */
+
+  /* نصوص بنية دافئة عالية التباين على الكريمي */
+  --text-primary: 46 29 34; /* #2E1D22 */
+  --text-secondary: 107 84 89; /* #6B5459 */
+  --text-muted: 154 132 137; /* #9A8489 */
+  --text-on-brand: 21 11 15; /* نص العلامة يبقى داكناً — نفس الزر في الوضعين */
+
+  /* حالات */
+  --status-todo: 154 132 137;
+  --status-progress: 224 96 63;
+  --status-done: 46 158 104; /* #2E9E68 أعمق قليلاً للتباين */
+
+  /* حدود داكنة بشفافية منخفضة = خطوط دافئة هادئة */
+  --border: 74 42 46; /* #4A2A2E */
+}
+
 @layer base {
   html {
-    background-color: var(--bg-base);
-    color-scheme: dark;
+    background-color: rgb(var(--bg-base));
   }
 
   body {
-    background-color: var(--bg-base);
-    color: var(--text-primary);
+    background-color: rgb(var(--bg-base));
+    color: rgb(var(--text-primary));
     font-family: var(--font-plex-arabic), system-ui, sans-serif;
     /* الأرقام الغربية (0-9) بكل الواجهة — design.md §3 */
     font-variant-numeric: lining-nums;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* تبديل سلس عند تغيير الوضع (بدون وميض بصري) */
+  html,
+  body {
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
   /* حقول الإدخال ترث الاتجاه RTL طبيعياً */
@@ -68,16 +112,16 @@
     font-family: inherit;
   }
 
-  /* شريط تمرير هادئ يتماشى مع الطابع الغامق */
+  /* شريط تمرير هادئ يتماشى مع الوضع الحالي */
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--bg-base);
+    background: rgb(var(--bg-base));
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--bg-surface-raised);
+    background: rgb(var(--bg-raised));
     border-radius: 999px;
   }
 }

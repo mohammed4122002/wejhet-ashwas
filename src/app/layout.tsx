@@ -42,8 +42,17 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    // RTL دائماً + dark mode هو الوضع الوحيد (قواعد CLAUDE.md غير القابلة للتفاوض)
-    <html lang="ar" dir="rtl" className={`dark ${plexArabic.variable}`}>
+    // RTL دائماً. الوضع الافتراضي داكن؛ سكربت ما-قبل-الرسم يضيف صنف `light`
+    // لو اختار الطالب الوضع الفاتح — قبل أول رسم لتفادي أي وميض.
+    <html lang="ar" dir="rtl" className={plexArabic.variable}>
+      <head>
+        <script
+          // يقرأ الاختيار المحفوظ ويطبّقه فوراً (متزامن، قبل الإماهة)
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(localStorage.getItem("theme")==="light"){document.documentElement.classList.add("light")}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-bg-base text-text-primary antialiased">
         <Providers>{children}</Providers>
       </body>

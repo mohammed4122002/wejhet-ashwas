@@ -25,7 +25,7 @@ export function GardenTree({ progress }: { progress: RewardProgress }) {
       <div className="flex h-72 items-end justify-center rounded-card border border-subtle bg-bg-base p-4">
         <svg viewBox="0 0 200 200" className="h-full w-auto" role="img" aria-label="شجرة التقدّم">
           {/* الأرض */}
-          <ellipse cx="100" cy="185" rx="70" ry="8" fill="var(--bg-surface)" />
+          <ellipse cx="100" cy="185" rx="70" ry="8" fill="rgb(var(--bg-surface))" />
           {/* الجذع */}
           <rect
             x="96"
@@ -33,7 +33,7 @@ export function GardenTree({ progress }: { progress: RewardProgress }) {
             width="8"
             height={trunkH}
             rx="3"
-            fill="var(--accent-copper)"
+            fill="rgb(var(--accent-copper))"
           />
           {/* التاج (يظهر من المرحلة 1) */}
           {stage >= 1 && (
@@ -41,7 +41,7 @@ export function GardenTree({ progress }: { progress: RewardProgress }) {
               cx="100"
               cy={180 - trunkH - canopy / 2}
               r={canopy}
-              fill="var(--brand-500)"
+              fill="rgb(var(--brand-500))"
               opacity={0.85}
               style={{ filter: "drop-shadow(0 0 12px rgba(224,96,63,0.35))" }}
             />
@@ -54,7 +54,7 @@ export function GardenTree({ progress }: { progress: RewardProgress }) {
                 cx={100 + d * 22}
                 cy={180 - trunkH - canopy / 2 + 6}
                 r="4"
-                fill="var(--brand-glow)"
+                fill="rgb(var(--brand-glow))"
               />
             ))}
         </svg>

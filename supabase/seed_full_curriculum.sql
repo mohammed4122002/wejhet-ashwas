@@ -1,260 +1,624 @@
 -- ============================================================================
---  منهاج التوجيهي الفلسطيني — بنية واقعية كاملة (كل مواد الفرعين)
+--  منهاج التوجيهي الفلسطيني — البنية الكاملة من فهارس الكتب الفعلية
 --
---  ملاحظة تعليمية مهمة: هذه بنية استرشادية تحاكي المنهاج الفلسطيني الفعلي
---  (وحدات ودروس بأسمائها المتعارفة). المنهاج يتغيّر شبه سنوياً ويختلف أحياناً
---  بين الضفة وغزة — **التدقيق النهائي من وزارة التربية للسنة المستهدفة**،
---  وسكربت scripts/import-questions.ts هو المسار الرسمي للمحتوى الكامل.
+--  مصدر البيانات: صور فهارس كتب التوجيهي الفلسطيني (16 صورة فهرس)
+--  آخر تحديث: 2026-07-18
 --
---  آمن للتشغيل أكثر من مرة (idempotent).
+--  يحذف البيانات القديمة ويعيد بناءها من الصفر.
+--  ⚠️ لا تشغّله على قاعدة فيها أسئلة مرتبطة إلا بعد تفريغ question_bank_items.
 -- ============================================================================
 
--- ---------- المواد (مشتركة 1-4، علمي 10-13، أدبي 20-23) ----------
+-- تنظيف كامل (cascade يحذف الوحدات والدروس تلقائياً)
+delete from lessons;
+delete from units;
+delete from subjects;
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                         المواد                                  ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into subjects (track, name_ar, slug, order_index) values
-  ('shared',     'اللغة الإنجليزية',      'english',    2),
-  ('shared',     'التربية الإسلامية',     'islamic',    3),
-  ('shared',     'تكنولوجيا المعلومات',   'ict',        4),
-  ('scientific', 'الفيزياء',              'physics',   11),
-  ('scientific', 'الكيمياء',              'chemistry', 12),
-  ('scientific', 'الأحياء',               'biology',   13),
-  ('literary',   'الجغرافيا',             'geography', 21),
-  ('literary',   'علم النفس والاجتماع',   'psychology',22),
-  ('literary',   'الثقافة العلمية',       'science-culture', 23)
-on conflict (slug) do nothing;
+  -- مشتركة
+  ('shared',     'اللغة العربية',              'arabic',            1),
+  ('shared',     'اللغة الإنجليزية',           'english',           2),
+  ('shared',     'التربية الإسلامية',          'islamic',           3),
+  -- علمي
+  ('scientific', 'الرياضيات العلمي',           'math-sci',         10),
+  ('scientific', 'الفيزياء',                   'physics',          11),
+  ('scientific', 'الكيمياء',                   'chemistry',        12),
+  ('scientific', 'الأحياء',                    'biology',          13),
+  ('scientific', 'تكنولوجيا المعلومات العلمي', 'ict-sci',          14),
+  -- أدبي
+  ('literary',   'الرياضيات الأدبي',           'math-lit',         20),
+  ('literary',   'الأدب والبلاغة',             'arabic-literature',21),
+  ('literary',   'التاريخ',                    'history',          22),
+  ('literary',   'الجغرافيا',                  'geography',        23),
+  ('literary',   'الثقافة العلمية',            'science-culture',  24),
+  ('literary',   'تكنولوجيا المعلومات أدبي',   'ict-lit',          25);
 
--- إعادة ترتيب المواد الموجودة ضمن المجموعات
-update subjects set order_index = 1  where slug = 'arabic';
-update subjects set order_index = 10 where slug = 'math';
-update subjects set order_index = 20 where slug = 'history';
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                    اللغة العربية (مشتركة)                       ║
+-- ╚══════════════════════════════════════════════════════════════════╝
 
--- ---------- دالة النمط: وحدات ثم دروس (نفس نمط seed.sql الآمن) ----------
-
--- ===== اللغة الإنجليزية =====
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('القراءة والاستيعاب', 1), ('القواعد', 2), ('الكتابة', 3), ('المفردات والتعبير', 4)
-) as v(name_ar, order_index)
-where s.slug = 'english'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('الوحدة الأولى', 1),
+  ('الوحدة الثانية', 2),
+  ('الوحدة الثالثة', 3),
+  ('الوحدة الرابعة', 4),
+  ('الوحدة الخامسة', 5),
+  ('الوحدة السادسة', 6),
+  ('الوحدة السابعة', 7),
+  ('الوحدة الثامنة', 8),
+  ('الوحدة التاسعة', 9)
+) as v(name_ar, idx)
+where s.slug = 'arabic';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
+select u.id, v.name_ar, v.idx from units u
+join subjects s on s.id = u.subject_id and s.slug = 'arabic'
+cross join lateral (values
+  -- الوحدة الأولى
+  ('الوحدة الأولى', 'من سورة يوسف', 1),
+  ('الوحدة الأولى', 'الممنوع من الصرف (1)', 2),
+  ('الوحدة الأولى', 'البحر الوافر', 3),
+  -- الوحدة الثانية
+  ('الوحدة الثانية', 'غروب الأندلس', 1),
+  ('الوحدة الثانية', 'رسالة إلى صديق قديم', 2),
+  ('الوحدة الثانية', 'الممنوع من الصرف (2)', 3),
+  ('الوحدة الثانية', 'التعبير', 4),
+  -- الوحدة الثالثة
+  ('الوحدة الثالثة', 'كم حياة ستعيش', 1),
+  ('الوحدة الثالثة', 'الإعلال', 2),
+  ('الوحدة الثالثة', 'البحر الطويل', 3),
+  -- الوحدة الرابعة
+  ('الوحدة الرابعة', 'القدس بوصلة ومجد', 1),
+  ('الوحدة الرابعة', 'رام الله', 2),
+  ('الوحدة الرابعة', 'الإبدال', 3),
+  ('الوحدة الرابعة', 'التعبير', 4),
+  -- الوحدة الخامسة
+  ('الوحدة الخامسة', 'التواصل في العالم الافتراضي وآدابه', 1),
+  ('الوحدة الخامسة', 'اسم الفعل', 2),
+  ('الوحدة الخامسة', 'البحر البسيط', 3),
+  -- الوحدة السادسة
+  ('الوحدة السادسة', 'المدينة الذكية', 1),
+  ('الوحدة السادسة', 'أنا وليلى', 2),
+  ('الوحدة السادسة', 'من المعاني النحوية لـ الواو والفاء', 3),
+  -- الوحدة السابعة
+  ('الوحدة السابعة', 'أحاديث نبوية', 1),
+  ('الوحدة السابعة', 'المدينة المحاصرة', 2),
+  ('الوحدة السابعة', 'من المعاني النحوية لـ ما ومَنْ', 3),
+  ('الوحدة السابعة', 'التعبير', 4),
+  -- الوحدة الثامنة
+  ('الوحدة الثامنة', 'مرافعات أمام ضمير غائب', 1),
+  ('الوحدة الثامنة', 'وصية لاجئ', 2),
+  ('الوحدة الثامنة', 'من المعاني النحوية لـ لا واللام', 3),
+  -- الوحدة التاسعة
+  ('الوحدة التاسعة', 'البومة في غرفة بعيدة', 1),
+  ('الوحدة التاسعة', 'الجمل التي لها محل من الإعراب', 2),
+  ('الوحدة التاسعة', 'البحر الخفيف', 3),
+  ('الوحدة التاسعة', 'التعبير', 4)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                  اللغة الإنجليزية (مشتركة)                      ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+insert into units (subject_id, name_ar, order_index)
+select s.id, v.name_ar, v.idx from subjects s
+cross join (values
+  ('Unit 1: A New Start', 1),
+  ('Unit 2: Under Pressure', 2),
+  ('Unit 3: A Funny Thing Happened', 3),
+  ('Unit 4: The Shrinking World', 4),
+  ('Unit 5: Making Friends', 5),
+  ('Unit 6: Revision (Book 1)', 6),
+  ('Unit 7: The World of Work', 7),
+  ('Unit 8: In Business', 8),
+  ('Unit 9: Only a Game?', 9),
+  ('Unit 10: Who Am I?', 10),
+  ('Unit 11: Different Places Different Ways', 11)
+) as v(name_ar, idx)
+where s.slug = 'english';
+
+insert into lessons (unit_id, name_ar, order_index)
+select u.id, v.name_ar, v.idx from units u
 join subjects s on s.id = u.subject_id and s.slug = 'english'
 cross join lateral (values
-  ('القراءة والاستيعاب', 'النصوص الأدبية', 1),
-  ('القراءة والاستيعاب', 'النصوص العلمية', 2),
-  ('القراءة والاستيعاب', 'الاستنتاج والتحليل', 3),
-  ('القواعد', 'الأزمنة Tenses', 1),
-  ('القواعد', 'المبني للمجهول Passive', 2),
-  ('القواعد', 'الجمل الشرطية Conditionals', 3),
-  ('القواعد', 'الكلام المنقول Reported Speech', 4),
-  ('الكتابة', 'كتابة المقال', 1),
-  ('الكتابة', 'كتابة التقرير', 2),
-  ('الكتابة', 'الرسالة الرسمية', 3),
-  ('المفردات والتعبير', 'المرادفات والأضداد', 1),
-  ('المفردات والتعبير', 'التعابير الاصطلاحية', 2)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('Unit 1: A New Start', 'Reading', 1),
+  ('Unit 1: A New Start', 'Vocabulary', 2),
+  ('Unit 1: A New Start', 'Grammar', 3),
+  ('Unit 1: A New Start', 'Writing', 4),
+  ('Unit 2: Under Pressure', 'Reading', 1),
+  ('Unit 2: Under Pressure', 'Vocabulary', 2),
+  ('Unit 2: Under Pressure', 'Grammar', 3),
+  ('Unit 2: Under Pressure', 'Writing', 4),
+  ('Unit 3: A Funny Thing Happened', 'Reading', 1),
+  ('Unit 3: A Funny Thing Happened', 'Vocabulary', 2),
+  ('Unit 3: A Funny Thing Happened', 'Grammar', 3),
+  ('Unit 3: A Funny Thing Happened', 'Writing', 4),
+  ('Unit 4: The Shrinking World', 'Reading', 1),
+  ('Unit 4: The Shrinking World', 'Vocabulary', 2),
+  ('Unit 4: The Shrinking World', 'Grammar', 3),
+  ('Unit 4: The Shrinking World', 'Writing', 4),
+  ('Unit 5: Making Friends', 'Reading', 1),
+  ('Unit 5: Making Friends', 'Vocabulary', 2),
+  ('Unit 5: Making Friends', 'Grammar', 3),
+  ('Unit 5: Making Friends', 'Writing', 4),
+  ('Unit 6: Revision (Book 1)', 'Revision', 1),
+  ('Unit 7: The World of Work', 'Reading', 1),
+  ('Unit 7: The World of Work', 'Vocabulary', 2),
+  ('Unit 7: The World of Work', 'Grammar', 3),
+  ('Unit 7: The World of Work', 'Writing', 4),
+  ('Unit 8: In Business', 'Reading', 1),
+  ('Unit 8: In Business', 'Vocabulary', 2),
+  ('Unit 8: In Business', 'Grammar', 3),
+  ('Unit 8: In Business', 'Writing', 4),
+  ('Unit 9: Only a Game?', 'Reading', 1),
+  ('Unit 9: Only a Game?', 'Vocabulary', 2),
+  ('Unit 9: Only a Game?', 'Grammar', 3),
+  ('Unit 9: Only a Game?', 'Writing', 4),
+  ('Unit 10: Who Am I?', 'Reading', 1),
+  ('Unit 10: Who Am I?', 'Vocabulary', 2),
+  ('Unit 10: Who Am I?', 'Grammar', 3),
+  ('Unit 10: Who Am I?', 'Writing', 4),
+  ('Unit 11: Different Places Different Ways', 'Reading', 1),
+  ('Unit 11: Different Places Different Ways', 'Vocabulary', 2),
+  ('Unit 11: Different Places Different Ways', 'Grammar', 3),
+  ('Unit 11: Different Places Different Ways', 'Writing', 4)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
 
--- ===== التربية الإسلامية =====
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                  التربية الإسلامية (مشتركة)                     ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('العقيدة', 1), ('الحديث والسيرة', 2), ('الفقه', 3), ('التلاوة والتجويد', 4)
-) as v(name_ar, order_index)
-where s.slug = 'islamic'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('القرآن الكريم', 1),
+  ('العقيدة الإسلامية', 2),
+  ('الحديث الشريف', 3),
+  ('السير والتراجم', 4),
+  ('الفقه الإسلامي', 5),
+  ('الفكر الإسلامي', 6)
+) as v(name_ar, idx)
+where s.slug = 'islamic';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
+select u.id, v.name_ar, v.idx from units u
 join subjects s on s.id = u.subject_id and s.slug = 'islamic'
 cross join lateral (values
-  ('العقيدة', 'الإيمان بالقضاء والقدر', 1),
-  ('العقيدة', 'أثر الإيمان في حياة المسلم', 2),
-  ('الحديث والسيرة', 'أحاديث في الأخلاق', 1),
-  ('الحديث والسيرة', 'دروس من السيرة النبوية', 2),
-  ('الفقه', 'المعاملات المالية', 1),
-  ('الفقه', 'أحكام الأسرة', 2),
-  ('التلاوة والتجويد', 'أحكام النون الساكنة والتنوين', 1),
-  ('التلاوة والتجويد', 'أحكام المدود', 2)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('القرآن الكريم', 'الدرس 1', 1),
+  ('القرآن الكريم', 'الدرس 2', 2),
+  ('القرآن الكريم', 'الدرس 3', 3),
+  ('القرآن الكريم', 'الدرس 4', 4),
+  ('القرآن الكريم', 'الدرس 5', 5),
+  ('القرآن الكريم', 'الدرس 6', 6),
+  ('القرآن الكريم', 'الدرس 7', 7),
+  ('القرآن الكريم', 'الدرس 8', 8),
+  ('القرآن الكريم', 'الدرس 9', 9),
+  ('القرآن الكريم', 'الدرس 10', 10),
+  ('العقيدة الإسلامية', 'الدرس 1', 1),
+  ('العقيدة الإسلامية', 'الدرس 2', 2),
+  ('العقيدة الإسلامية', 'الدرس 3', 3),
+  ('الحديث الشريف', 'الدرس 1', 1),
+  ('الحديث الشريف', 'الدرس 2', 2),
+  ('الحديث الشريف', 'الدرس 3', 3),
+  ('الحديث الشريف', 'الدرس 4', 4),
+  ('السير والتراجم', 'الدرس 1', 1),
+  ('السير والتراجم', 'الدرس 2', 2),
+  ('السير والتراجم', 'الدرس 3', 3),
+  ('السير والتراجم', 'الدرس 4', 4),
+  ('الفقه الإسلامي', 'الدرس 1', 1),
+  ('الفقه الإسلامي', 'الدرس 2', 2),
+  ('الفقه الإسلامي', 'الدرس 3', 3),
+  ('الفقه الإسلامي', 'الدرس 4', 4),
+  ('الفقه الإسلامي', 'الدرس 5', 5),
+  ('الفكر الإسلامي', 'الدرس 1', 1),
+  ('الفكر الإسلامي', 'الدرس 2', 2),
+  ('الفكر الإسلامي', 'الدرس 3', 3),
+  ('الفكر الإسلامي', 'الدرس 4', 4)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
 
--- ===== تكنولوجيا المعلومات =====
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                   الرياضيات العلمي                               ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('البرمجة والخوارزميات', 1), ('قواعد البيانات', 2), ('الشبكات والإنترنت', 3)
-) as v(name_ar, order_index)
-where s.slug = 'ict'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('حساب التفاضل', 1),
+  ('تطبيقات التفاضل', 2),
+  ('المصفوفات والمحددات', 3),
+  ('التكامل غير المحدود', 4),
+  ('التكامل المحدود', 5),
+  ('الأعداد المركبة', 6)
+) as v(name_ar, idx)
+where s.slug = 'math-sci';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
-join subjects s on s.id = u.subject_id and s.slug = 'ict'
+select u.id, v.name_ar, v.idx from units u
+join subjects s on s.id = u.subject_id and s.slug = 'math-sci'
 cross join lateral (values
-  ('البرمجة والخوارزميات', 'الخوارزميات والمخططات الانسيابية', 1),
-  ('البرمجة والخوارزميات', 'الجمل الشرطية', 2),
-  ('البرمجة والخوارزميات', 'الحلقات التكرارية', 3),
-  ('قواعد البيانات', 'تصميم قواعد البيانات', 1),
-  ('قواعد البيانات', 'لغة الاستعلام SQL', 2),
-  ('الشبكات والإنترنت', 'أساسيات الشبكات', 1),
-  ('الشبكات والإنترنت', 'الأمن الرقمي والحماية', 2)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('حساب التفاضل', 'الدرس 1', 1),
+  ('حساب التفاضل', 'الدرس 2', 2),
+  ('حساب التفاضل', 'الدرس 3', 3),
+  ('حساب التفاضل', 'الدرس 4', 4),
+  ('حساب التفاضل', 'الدرس 5', 5),
+  ('حساب التفاضل', 'الدرس 6', 6),
+  ('حساب التفاضل', 'الدرس 7', 7),
+  ('تطبيقات التفاضل', 'الدرس 1', 1),
+  ('تطبيقات التفاضل', 'الدرس 2', 2),
+  ('تطبيقات التفاضل', 'الدرس 3', 3),
+  ('تطبيقات التفاضل', 'الدرس 4', 4),
+  ('تطبيقات التفاضل', 'الدرس 5', 5),
+  ('المصفوفات والمحددات', 'الدرس 1', 1),
+  ('المصفوفات والمحددات', 'الدرس 2', 2),
+  ('المصفوفات والمحددات', 'الدرس 3', 3),
+  ('المصفوفات والمحددات', 'الدرس 4', 4),
+  ('المصفوفات والمحددات', 'الدرس 5', 5),
+  ('التكامل غير المحدود', 'الدرس 1', 1),
+  ('التكامل غير المحدود', 'الدرس 2', 2),
+  ('التكامل غير المحدود', 'الدرس 3', 3),
+  ('التكامل غير المحدود', 'الدرس 4', 4),
+  ('التكامل المحدود', 'الدرس 1', 1),
+  ('التكامل المحدود', 'الدرس 2', 2),
+  ('التكامل المحدود', 'الدرس 3', 3),
+  ('التكامل المحدود', 'الدرس 4', 4),
+  ('التكامل المحدود', 'الدرس 5', 5),
+  ('الأعداد المركبة', 'الدرس 1', 1),
+  ('الأعداد المركبة', 'الدرس 2', 2),
+  ('الأعداد المركبة', 'الدرس 3', 3)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
 
--- ===== الفيزياء =====
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                        الفيزياء                                 ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('الحركة الدورانية والاتزان', 1), ('الكهرباء', 2), ('المغناطيسية', 3), ('الفيزياء الحديثة', 4)
-) as v(name_ar, order_index)
-where s.slug = 'physics'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('الميكانيكا', 1),
+  ('الكهرباء المتحركة', 2),
+  ('الكهرومغناطيسية', 3),
+  ('الفيزياء الحديثة', 4)
+) as v(name_ar, idx)
+where s.slug = 'physics';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
+select u.id, v.name_ar, v.idx from units u
 join subjects s on s.id = u.subject_id and s.slug = 'physics'
 cross join lateral (values
-  ('الحركة الدورانية والاتزان', 'عزم القوة', 1),
-  ('الحركة الدورانية والاتزان', 'الزخم الزاوي', 2),
-  ('الحركة الدورانية والاتزان', 'اتزان الأجسام', 3),
-  ('الكهرباء', 'المجال والجهد الكهربائي', 1),
-  ('الكهرباء', 'المواسعات', 2),
-  ('الكهرباء', 'دارات التيار المستمر', 3),
-  ('المغناطيسية', 'المجال المغناطيسي', 1),
-  ('المغناطيسية', 'الحث الكهرومغناطيسي', 2),
-  ('الفيزياء الحديثة', 'الظاهرة الكهروضوئية', 1),
-  ('الفيزياء الحديثة', 'الفيزياء النووية', 2)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('الميكانيكا', 'الزخم والدفع', 1),
+  ('الميكانيكا', 'التصادمات', 2),
+  ('الميكانيكا', 'الحركة الدورانية', 3),
+  ('الكهرباء المتحركة', 'التيار الكهربائي والمقاومة', 1),
+  ('الكهرباء المتحركة', 'دارات التيار المستمر', 2),
+  ('الكهرومغناطيسية', 'المجال المغناطيسي', 1),
+  ('الكهرومغناطيسية', 'القوة المغناطيسية', 2),
+  ('الكهرومغناطيسية', 'الحث الكهرومغناطيسي', 3),
+  ('الفيزياء الحديثة', 'نظرية الكم', 1),
+  ('الفيزياء الحديثة', 'بنية النواة والإشعاع النووي', 2)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
 
--- ===== الكيمياء =====
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                        الكيمياء                                 ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('الاتزان الكيميائي', 1), ('الأحماض والقواعد', 2), ('الكيمياء الكهربائية', 3), ('الكيمياء العضوية', 4)
-) as v(name_ar, order_index)
-where s.slug = 'chemistry'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('الاتزان الكيميائي', 1),
+  ('الأحماض والقواعد', 2),
+  ('الكيمياء الكهربائية', 3),
+  ('سرعة التفاعل الكيميائي', 4),
+  ('الكيمياء العضوية', 5),
+  ('الكيمياء التطبيقية', 6)
+) as v(name_ar, idx)
+where s.slug = 'chemistry';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
+select u.id, v.name_ar, v.idx from units u
 join subjects s on s.id = u.subject_id and s.slug = 'chemistry'
 cross join lateral (values
   ('الاتزان الكيميائي', 'ثابت الاتزان', 1),
   ('الاتزان الكيميائي', 'مبدأ لوشاتلييه', 2),
-  ('الأحماض والقواعد', 'مفهوم الحموضة والقاعدية', 1),
-  ('الأحماض والقواعد', 'المحاليل المنظّمة', 2),
-  ('الأحماض والقواعد', 'التسحيح', 3),
+  ('الاتزان الكيميائي', 'تطبيقات على الاتزان', 3),
+  ('الأحماض والقواعد', 'نظريات الأحماض والقواعد', 1),
+  ('الأحماض والقواعد', 'الرقم الهيدروجيني pH', 2),
+  ('الأحماض والقواعد', 'المحاليل المنظّمة', 3),
+  ('الأحماض والقواعد', 'التسحيح (المعايرة)', 4),
   ('الكيمياء الكهربائية', 'الخلايا الجلفانية', 1),
   ('الكيمياء الكهربائية', 'التحليل الكهربائي', 2),
+  ('الكيمياء الكهربائية', 'تطبيقات الكيمياء الكهربائية', 3),
+  ('سرعة التفاعل الكيميائي', 'قياس سرعة التفاعل', 1),
+  ('سرعة التفاعل الكيميائي', 'العوامل المؤثرة في سرعة التفاعل', 2),
+  ('سرعة التفاعل الكيميائي', 'نظرية التصادم', 3),
   ('الكيمياء العضوية', 'الهيدروكربونات', 1),
-  ('الكيمياء العضوية', 'الكحولات والألدهيدات', 2),
-  ('الكيمياء العضوية', 'الأحماض الكربوكسيلية', 3)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('الكيمياء العضوية', 'المجموعات الوظيفية', 2),
+  ('الكيمياء العضوية', 'الكحولات والألدهيدات والكيتونات', 3),
+  ('الكيمياء العضوية', 'الأحماض الكربوكسيلية والإسترات', 4),
+  ('الكيمياء التطبيقية', 'البوليمرات', 1),
+  ('الكيمياء التطبيقية', 'الكيمياء الخضراء', 2)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
 
--- ===== الأحياء =====
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                        الأحياء                                  ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('الوراثة', 1), ('التنظيم العصبي', 2), ('التنظيم الهرموني', 3), ('المناعة', 4)
-) as v(name_ar, order_index)
-where s.slug = 'biology'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('عمليات حيوية في الخلية', 1),
+  ('الوراثة', 2),
+  ('أجهزة جسم الإنسان', 3),
+  ('الكائنات الدقيقة', 4)
+) as v(name_ar, idx)
+where s.slug = 'biology';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
+select u.id, v.name_ar, v.idx from units u
 join subjects s on s.id = u.subject_id and s.slug = 'biology'
 cross join lateral (values
+  ('عمليات حيوية في الخلية', 'التنفس الخلوي', 1),
+  ('عمليات حيوية في الخلية', 'البناء الضوئي', 2),
+  ('عمليات حيوية في الخلية', 'الانقسام الخلوي', 3),
   ('الوراثة', 'قوانين مندل', 1),
-  ('الوراثة', 'DNA وتضاعفه', 2),
+  ('الوراثة', 'الوراثة الجزيئية (DNA)', 2),
   ('الوراثة', 'بناء البروتين', 3),
-  ('التنظيم العصبي', 'الخلية العصبية والسيال', 1),
-  ('التنظيم العصبي', 'الدماغ والحبل الشوكي', 2),
-  ('التنظيم الهرموني', 'الغدد الصماء', 1),
-  ('التنظيم الهرموني', 'التوازن الداخلي', 2),
-  ('المناعة', 'أنواع المناعة', 1),
-  ('المناعة', 'الأمراض المناعية', 2)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('الوراثة', 'الطفرات والهندسة الوراثية', 4),
+  ('الوراثة', 'الوراثة البشرية', 5),
+  ('أجهزة جسم الإنسان', 'الجهاز العصبي', 1),
+  ('أجهزة جسم الإنسان', 'جهاز الغدد الصماء', 2),
+  ('أجهزة جسم الإنسان', 'الجهاز المناعي', 3),
+  ('الكائنات الدقيقة', 'البكتيريا والفيروسات', 1),
+  ('الكائنات الدقيقة', 'التطبيقات الحيوية', 2)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
 
--- ===== الجغرافيا =====
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                 تكنولوجيا المعلومات العلمي                      ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('الجغرافيا الطبيعية', 1), ('الجغرافيا البشرية', 2), ('جغرافية فلسطين', 3), ('الخرائط ونظم المعلومات', 4)
-) as v(name_ar, order_index)
-where s.slug = 'geography'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('قواعد البيانات', 1),
+  ('تطبيقات الهاتف الذكي', 2),
+  ('الرسم الهندسي وتصميم الروبوت', 3),
+  ('شبكات الاتصال', 4)
+) as v(name_ar, idx)
+where s.slug = 'ict-sci';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
+select u.id, v.name_ar, v.idx from units u
+join subjects s on s.id = u.subject_id and s.slug = 'ict-sci'
+cross join lateral (values
+  ('قواعد البيانات', 'الدرس 1', 1),
+  ('قواعد البيانات', 'الدرس 2', 2),
+  ('قواعد البيانات', 'الدرس 3', 3),
+  ('تطبيقات الهاتف الذكي', 'الدرس 1', 1),
+  ('تطبيقات الهاتف الذكي', 'الدرس 2', 2),
+  ('الرسم الهندسي وتصميم الروبوت', 'الدرس 1', 1),
+  ('الرسم الهندسي وتصميم الروبوت', 'الدرس 2', 2),
+  ('شبكات الاتصال', 'الدرس 1', 1),
+  ('شبكات الاتصال', 'الدرس 2', 2)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                    الرياضيات الأدبي                              ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+insert into units (subject_id, name_ar, order_index)
+select s.id, v.name_ar, v.idx from subjects s
+cross join (values
+  ('التفاضل والتكامل', 1),
+  ('المصفوفات', 2),
+  ('المعادلات والمتسلسلات', 3),
+  ('الإحصاء', 4)
+) as v(name_ar, idx)
+where s.slug = 'math-lit';
+
+insert into lessons (unit_id, name_ar, order_index)
+select u.id, v.name_ar, v.idx from units u
+join subjects s on s.id = u.subject_id and s.slug = 'math-lit'
+cross join lateral (values
+  ('التفاضل والتكامل', 'الدرس 1', 1),
+  ('التفاضل والتكامل', 'الدرس 2', 2),
+  ('التفاضل والتكامل', 'الدرس 3', 3),
+  ('التفاضل والتكامل', 'الدرس 4', 4),
+  ('التفاضل والتكامل', 'الدرس 5', 5),
+  ('التفاضل والتكامل', 'الدرس 6', 6),
+  ('التفاضل والتكامل', 'الدرس 7', 7),
+  ('المصفوفات', 'الدرس 1', 1),
+  ('المصفوفات', 'الدرس 2', 2),
+  ('المصفوفات', 'الدرس 3', 3),
+  ('المصفوفات', 'الدرس 4', 4),
+  ('المصفوفات', 'الدرس 5', 5),
+  ('المصفوفات', 'الدرس 6', 6),
+  ('المعادلات والمتسلسلات', 'الدرس 1', 1),
+  ('المعادلات والمتسلسلات', 'الدرس 2', 2),
+  ('المعادلات والمتسلسلات', 'الدرس 3', 3),
+  ('المعادلات والمتسلسلات', 'الدرس 4', 4),
+  ('المعادلات والمتسلسلات', 'الدرس 5', 5),
+  ('الإحصاء', 'الدرس 1', 1),
+  ('الإحصاء', 'الدرس 2', 2),
+  ('الإحصاء', 'الدرس 3', 3)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                      الأدب والبلاغة                             ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+insert into units (subject_id, name_ar, order_index)
+select s.id, v.name_ar, v.idx from subjects s
+cross join (values
+  ('المدارس الشعرية الحديثة', 1),
+  ('اتجاهات الشعر المعاصر', 2),
+  ('من ظواهر الشعر العربي المعاصر', 3),
+  ('البلاغة العربية', 4),
+  ('النثر الأدبي الحديث', 5)
+) as v(name_ar, idx)
+where s.slug = 'arabic-literature';
+
+insert into lessons (unit_id, name_ar, order_index)
+select u.id, v.name_ar, v.idx from units u
+join subjects s on s.id = u.subject_id and s.slug = 'arabic-literature'
+cross join lateral (values
+  ('المدارس الشعرية الحديثة', 'الدرس 1', 1),
+  ('المدارس الشعرية الحديثة', 'الدرس 2', 2),
+  ('المدارس الشعرية الحديثة', 'الدرس 3', 3),
+  ('المدارس الشعرية الحديثة', 'الدرس 4', 4),
+  ('المدارس الشعرية الحديثة', 'الدرس 5', 5),
+  ('اتجاهات الشعر المعاصر', 'الدرس 1', 1),
+  ('اتجاهات الشعر المعاصر', 'الدرس 2', 2),
+  ('اتجاهات الشعر المعاصر', 'الدرس 3', 3),
+  ('اتجاهات الشعر المعاصر', 'الشعر الفلسطيني', 4),
+  ('من ظواهر الشعر العربي المعاصر', 'الدرس 1', 1),
+  ('من ظواهر الشعر العربي المعاصر', 'الدرس 2', 2),
+  ('من ظواهر الشعر العربي المعاصر', 'الشعر الفلسطيني الحديث', 3),
+  ('البلاغة العربية', 'الدرس 1', 1),
+  ('البلاغة العربية', 'الدرس 2', 2),
+  ('البلاغة العربية', 'الدرس 3', 3),
+  ('النثر الأدبي الحديث', 'الدرس 1', 1),
+  ('النثر الأدبي الحديث', 'الدرس 2', 2),
+  ('النثر الأدبي الحديث', 'الدرس 3', 3)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                        التاريخ                                  ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+insert into units (subject_id, name_ar, order_index)
+select s.id, v.name_ar, v.idx from subjects s
+cross join (values
+  ('فتوحات وحروب عابرة للقارات', 1),
+  ('ثورات شعبية', 2),
+  ('إمبراطوريات عابرة للقوميات', 3)
+) as v(name_ar, idx)
+where s.slug = 'history';
+
+insert into lessons (unit_id, name_ar, order_index)
+select u.id, v.name_ar, v.idx from units u
+join subjects s on s.id = u.subject_id and s.slug = 'history'
+cross join lateral (values
+  ('فتوحات وحروب عابرة للقارات', 'الدرس 1', 1),
+  ('فتوحات وحروب عابرة للقارات', 'الدرس 2', 2),
+  ('فتوحات وحروب عابرة للقارات', 'الدرس 3', 3),
+  ('فتوحات وحروب عابرة للقارات', 'الدرس 4', 4),
+  ('فتوحات وحروب عابرة للقارات', 'الدرس 5', 5),
+  ('ثورات شعبية', 'الدرس 1', 1),
+  ('ثورات شعبية', 'الدرس 2', 2),
+  ('ثورات شعبية', 'الدرس 3', 3),
+  ('ثورات شعبية', 'الدرس 4', 4),
+  ('إمبراطوريات عابرة للقوميات', 'الدرس 1', 1),
+  ('إمبراطوريات عابرة للقوميات', 'الدرس 2', 2),
+  ('إمبراطوريات عابرة للقوميات', 'الدرس 3', 3),
+  ('إمبراطوريات عابرة للقوميات', 'الدرس 4', 4),
+  ('إمبراطوريات عابرة للقوميات', 'الدرس 5', 5)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                        الجغرافيا                                ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+insert into units (subject_id, name_ar, order_index)
+select s.id, v.name_ar, v.idx from subjects s
+cross join (values
+  ('الجغرافيا المناخية', 1),
+  ('الموارد الطبيعية والبشرية', 2),
+  ('مخاطر تهدد الأرض', 3),
+  ('السياحة', 4)
+) as v(name_ar, idx)
+where s.slug = 'geography';
+
+insert into lessons (unit_id, name_ar, order_index)
+select u.id, v.name_ar, v.idx from units u
 join subjects s on s.id = u.subject_id and s.slug = 'geography'
 cross join lateral (values
-  ('الجغرافيا الطبيعية', 'المناخ وعناصره', 1),
-  ('الجغرافيا الطبيعية', 'التضاريس', 2),
-  ('الجغرافيا البشرية', 'السكان والهجرة', 1),
-  ('الجغرافيا البشرية', 'العمران والمدن', 2),
-  ('جغرافية فلسطين', 'الموقع والأهمية', 1),
-  ('جغرافية فلسطين', 'الموارد الطبيعية والمياه', 2),
-  ('الخرائط ونظم المعلومات', 'قراءة الخرائط', 1),
-  ('الخرائط ونظم المعلومات', 'نظم المعلومات الجغرافية GIS', 2)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('الجغرافيا المناخية', 'الدرس 1', 1),
+  ('الجغرافيا المناخية', 'الدرس 2', 2),
+  ('الجغرافيا المناخية', 'الدرس 3', 3),
+  ('الجغرافيا المناخية', 'الدرس 4', 4),
+  ('الجغرافيا المناخية', 'الدرس 5', 5),
+  ('الموارد الطبيعية والبشرية', 'الدرس 1', 1),
+  ('الموارد الطبيعية والبشرية', 'الدرس 2', 2),
+  ('الموارد الطبيعية والبشرية', 'الدرس 3', 3),
+  ('الموارد الطبيعية والبشرية', 'الدرس 4', 4),
+  ('الموارد الطبيعية والبشرية', 'الدرس 5', 5),
+  ('مخاطر تهدد الأرض', 'الدرس 1', 1),
+  ('مخاطر تهدد الأرض', 'الدرس 2', 2),
+  ('مخاطر تهدد الأرض', 'الدرس 3', 3),
+  ('السياحة', 'الدرس 1', 1),
+  ('السياحة', 'الدرس 2', 2),
+  ('السياحة', 'الدرس 3', 3),
+  ('السياحة', 'الدرس 4', 4)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
 
--- ===== علم النفس والاجتماع =====
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                      الثقافة العلمية                            ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
 insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
+select s.id, v.name_ar, v.idx from subjects s
 cross join (values
-  ('مدخل إلى علم النفس', 1), ('الشخصية والصحة النفسية', 2), ('علم الاجتماع', 3)
-) as v(name_ar, order_index)
-where s.slug = 'psychology'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
+  ('التقانة الكيميائية', 1),
+  ('الفيزياء الطبية', 2),
+  ('التقانة الحيوية وتطبيقاتها', 3),
+  ('غذاؤنا صحتنا', 4)
+) as v(name_ar, idx)
+where s.slug = 'science-culture';
 
 insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
-join subjects s on s.id = u.subject_id and s.slug = 'psychology'
-cross join lateral (values
-  ('مدخل إلى علم النفس', 'النمو الإنساني', 1),
-  ('مدخل إلى علم النفس', 'التعلم والذاكرة', 2),
-  ('الشخصية والصحة النفسية', 'سمات الشخصية', 1),
-  ('الشخصية والصحة النفسية', 'التكيف والضغوط', 2),
-  ('علم الاجتماع', 'المجتمع والثقافة', 1),
-  ('علم الاجتماع', 'الأسرة والتنشئة الاجتماعية', 2),
-  ('علم الاجتماع', 'المشكلات الاجتماعية', 3)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
-
--- ===== الثقافة العلمية =====
-insert into units (subject_id, name_ar, order_index)
-select s.id, v.name_ar, v.order_index from subjects s
-cross join (values
-  ('الطاقة', 1), ('الصحة والغذاء', 2), ('التكنولوجيا والبيئة', 3)
-) as v(name_ar, order_index)
-where s.slug = 'science-culture'
-  and not exists (select 1 from units u where u.subject_id = s.id and u.name_ar = v.name_ar);
-
-insert into lessons (unit_id, name_ar, order_index)
-select u.id, v.name_ar, v.order_index from units u
+select u.id, v.name_ar, v.idx from units u
 join subjects s on s.id = u.subject_id and s.slug = 'science-culture'
 cross join lateral (values
-  ('الطاقة', 'مصادر الطاقة', 1),
-  ('الطاقة', 'الطاقة المتجددة', 2),
-  ('الصحة والغذاء', 'التغذية السليمة', 1),
-  ('الصحة والغذاء', 'أمراض العصر', 2),
-  ('التكنولوجيا والبيئة', 'تكنولوجيا الاتصالات', 1),
-  ('التكنولوجيا والبيئة', 'التلوث وحماية البيئة', 2)
-) as v(unit_name, name_ar, order_index)
-where u.name_ar = v.unit_name
-  and not exists (select 1 from lessons l where l.unit_id = u.id and l.name_ar = v.name_ar);
+  ('التقانة الكيميائية', 'الدرس 1', 1),
+  ('التقانة الكيميائية', 'الدرس 2', 2),
+  ('التقانة الكيميائية', 'الدرس 3', 3),
+  ('الفيزياء الطبية', 'الدرس 1', 1),
+  ('الفيزياء الطبية', 'الدرس 2', 2),
+  ('التقانة الحيوية وتطبيقاتها', 'الدرس 1', 1),
+  ('التقانة الحيوية وتطبيقاتها', 'الدرس 2', 2),
+  ('غذاؤنا صحتنا', 'الدرس 1', 1)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║                 تكنولوجيا المعلومات أدبي                        ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+insert into units (subject_id, name_ar, order_index)
+select s.id, v.name_ar, v.idx from subjects s
+cross join (values
+  ('معالجة البيانات', 1),
+  ('شبكات الاتصال', 2),
+  ('الحياة في العالم الافتراضي', 3)
+) as v(name_ar, idx)
+where s.slug = 'ict-lit';
+
+insert into lessons (unit_id, name_ar, order_index)
+select u.id, v.name_ar, v.idx from units u
+join subjects s on s.id = u.subject_id and s.slug = 'ict-lit'
+cross join lateral (values
+  ('معالجة البيانات', 'الدرس 1', 1),
+  ('معالجة البيانات', 'الدرس 2', 2),
+  ('شبكات الاتصال', 'الدرس 1', 1),
+  ('شبكات الاتصال', 'الدرس 2', 2),
+  ('الحياة في العالم الافتراضي', 'الدرس 1', 1),
+  ('الحياة في العالم الافتراضي', 'الدرس 2', 2),
+  ('الحياة في العالم الافتراضي', 'الدرس 3', 3)
+) as v(unit_name, name_ar, idx)
+where u.name_ar = v.unit_name;

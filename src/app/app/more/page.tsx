@@ -4,11 +4,18 @@ import {
   Trophy,
   HelpCircle,
   Settings,
+  Zap,
   ChevronLeft,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const ITEMS = [
+  {
+    href: "/app/challenge",
+    label: "التحدي اليومي",
+    desc: "سؤال عشوائي — 30 ثانية فقط!",
+    icon: Zap,
+  },
   {
     href: "/app/rewards",
     label: "إنجازي",

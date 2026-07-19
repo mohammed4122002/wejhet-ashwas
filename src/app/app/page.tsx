@@ -9,11 +9,14 @@ import { useCurriculum } from "@/hooks/use-curriculum";
 import { RemindersPanel } from "@/components/app/reminders-panel";
 import { TodayHero } from "@/components/app/today-hero";
 import { GuidePanel } from "@/components/app/guide-panel";
+import { MotivationalQuote } from "@/components/app/motivational-quote";
 import { TaskCard } from "@/components/app/task-card";
+import { TaskDoneToast, useTaskDoneToast } from "@/components/app/task-done-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { todayISO } from "@/lib/db/ids";
+import { fireTaskComplete, fireAllDayComplete } from "@/lib/confetti";
 
 export default function TodayPage() {
   const {
@@ -27,6 +30,7 @@ export default function TodayPage() {
   } = useTasks();
   const { slots } = useSchedule();
   const { subjects } = useCurriculum();
+  const { message: toastMsg, triggerToast } = useTaskDoneToast();
 
   const subjectName = useMemo(() => {
     const m = new Map(subjects.map((s) => [s.id, s.name_ar]));
@@ -54,8 +58,26 @@ export default function TodayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slots.length]);
 
+  async function handleStatusChange(task: Parameters<typeof setStatus>[0], next: Parameters<typeof setStatus>[1]) {
+    await setStatus(task, next);
+    if (next === "done") {
+      triggerToast();
+      const remaining = tasksForDate.filter((t) => t.id !== task.id && t.status !== "done");
+      if (remaining.length === 0 && tasksForDate.length > 0) {
+        void fireAllDayComplete();
+      } else {
+        void fireTaskComplete();
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col gap-8">
+      <TaskDoneToast message={toastMsg} />
+
+      {/* عبارة تحفيزية */}
+      <MotivationalQuote />
+
       {/* تحية شخصية + إحصائيات اليوم الحيّة */}
       <TodayHero />
 
@@ -78,7 +100,7 @@ export default function TodayPage() {
                 key={t.id}
                 task={t}
                 subjectName={subjectName(t.subject_id)}
-                onStatusChange={setStatus}
+                onStatusChange={handleStatusChange}
                 onPostpone={postponeToToday}
                 onDelete={removeTask}
               />
@@ -105,7 +127,7 @@ export default function TodayPage() {
                 timeLabel={
                   t.schedule_slot_id ? slotTime.get(t.schedule_slot_id) : undefined
                 }
-                onStatusChange={setStatus}
+                onStatusChange={handleStatusChange}
                 onDelete={removeTask}
               />
             ))}

@@ -85,6 +85,11 @@ export interface BadgeInput {
   overallRatio: number;
   streakDays: number; // أطول سلسلة أيام متتالية فيها إنجاز
   bestMockPercent: number | null; // أعلى علامة اختبار محاكاة
+  questionsAnswered?: number; // عدد أسئلة بنك الأسئلة المُجابة
+  pomodoroSessions?: number; // عدد جلسات بومودورو مكتملة
+  dailyChallengesWon?: number; // تحديات يومية ربحها
+  nightOwlSessions?: number; // جلسات بعد الـ11 مساءً
+  earlyBirdSessions?: number; // جلسات قبل الـ7 صباحاً
 }
 
 export interface Badge {
@@ -92,11 +97,13 @@ export interface Badge {
   label: string;
   description: string;
   earned: boolean;
+  hidden?: boolean; // شارة مخفية — لا تظهر حتى تُفتح
 }
 
 /** يقيّم الشارات من إنجاز حقيقي. */
 export function evaluateBadges(input: BadgeInput): Badge[] {
   return [
+    // === شارات أساسية ===
     {
       id: "first_task",
       label: "أول خطوة",
@@ -105,9 +112,21 @@ export function evaluateBadges(input: BadgeInput): Badge[] {
     },
     {
       id: "ten_tasks",
-      label: "عشرة على التوالي",
+      label: "عشرة مهام",
       description: "أنجزت 10 مهام",
       earned: input.completedTasks >= 10,
+    },
+    {
+      id: "fifty_tasks",
+      label: "خمسين مهمة",
+      description: "أنجزت 50 مهمة — ماشاء الله!",
+      earned: input.completedTasks >= 50,
+    },
+    {
+      id: "hundred_tasks",
+      label: "المئة الأولى",
+      description: "100 مهمة مُنجزة",
+      earned: input.completedTasks >= 100,
     },
     {
       id: "week_streak",
@@ -116,16 +135,70 @@ export function evaluateBadges(input: BadgeInput): Badge[] {
       earned: input.streakDays >= 7,
     },
     {
+      id: "month_streak",
+      label: "شهر حديد",
+      description: "30 يوماً بدون انقطاع!",
+      earned: input.streakDays >= 30,
+    },
+    {
       id: "half_way",
       label: "منتصف الطريق",
       description: "أنجزت نصف المنهج",
       earned: input.overallRatio >= 0.5,
     },
     {
+      id: "finish_line",
+      label: "خط النهاية",
+      description: "أنجزت المنهج كاملاً!",
+      earned: input.overallRatio >= 1,
+    },
+    {
       id: "mock_ace",
       label: "علامة كاملة",
       description: "اختبار محاكاة بعلامة 100%",
       earned: input.bestMockPercent === 100,
+    },
+    {
+      id: "mock_90",
+      label: "تسعين فما فوق",
+      description: "اختبار محاكاة بعلامة 90%+",
+      earned: (input.bestMockPercent ?? 0) >= 90,
+    },
+    // === شارات مخفية (سرّية) ===
+    {
+      id: "fifty_questions",
+      label: "مستكشف الأسئلة",
+      description: "أجبت 50 سؤالاً من بنك الأسئلة",
+      earned: (input.questionsAnswered ?? 0) >= 50,
+      hidden: true,
+    },
+    {
+      id: "pomodoro_master",
+      label: "سيّد التركيز",
+      description: "أكملت 25 جلسة بومودورو",
+      earned: (input.pomodoroSessions ?? 0) >= 25,
+      hidden: true,
+    },
+    {
+      id: "challenge_champ",
+      label: "بطل التحديات",
+      description: "فزت بـ 7 تحديات يومية",
+      earned: (input.dailyChallengesWon ?? 0) >= 7,
+      hidden: true,
+    },
+    {
+      id: "night_owl",
+      label: "بومة الليل",
+      description: "درست بعد الـ11 مساءً 5 مرات",
+      earned: (input.nightOwlSessions ?? 0) >= 5,
+      hidden: true,
+    },
+    {
+      id: "early_bird",
+      label: "عصفور الصبح",
+      description: "درست قبل الـ7 صباحاً 5 مرات",
+      earned: (input.earlyBirdSessions ?? 0) >= 5,
+      hidden: true,
     },
   ];
 }

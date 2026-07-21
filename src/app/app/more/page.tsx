@@ -6,6 +6,7 @@ import {
   Settings,
   Zap,
   ChevronLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -39,6 +40,12 @@ const ITEMS = [
     label: "الإعدادات",
     desc: "ملفك الشخصي، قالب المكافأة، التذكيرات",
     icon: Settings,
+  },
+  {
+    href: "/app/admin",
+    label: "إدارة الأسئلة",
+    desc: "إضافة وإدارة بنك الأسئلة (للمشرفين)",
+    icon: ShieldCheck,
   },
 ];
 

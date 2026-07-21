@@ -27,6 +27,7 @@ const MORE_PATHS = [
   "/app/doubts",
   "/app/settings",
   "/app/challenge",
+  "/app/admin",
 ];
 
 /**

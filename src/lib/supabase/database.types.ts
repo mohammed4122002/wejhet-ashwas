@@ -446,6 +446,38 @@ export interface Database {
         >;
         Relationships: [];
       };
+      materials: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          subject: string | null;
+          file_type: string;
+          source_type: string;
+          file_url: string;
+          file_size: number | null;
+          tags: string[] | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          subject?: string | null;
+          file_type: string;
+          source_type: string;
+          file_url: string;
+          file_size?: number | null;
+          tags?: string[] | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["materials"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       heatmap_unit_progress: {

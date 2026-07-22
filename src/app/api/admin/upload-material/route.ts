@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient();
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
 
     const { data, error } = await admin.storage
       .from(bucket)

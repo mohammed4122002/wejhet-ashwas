@@ -6,6 +6,12 @@ import { Plus, FileText, ChevronLeft, Sparkles } from "lucide-react";
 
 const ADMIN_OPTIONS = [
   {
+    href: "/app/admin/extract",
+    label: "استخراج وتحسين الأسئلة",
+    description: "استخرج الأسئلة من الملفات وحسّن صياغتها تلقائياً",
+    icon: Sparkles,
+  },
+  {
     href: "/app/admin/generate",
     label: "توليد الأسئلة التلقائي",
     description: "استخدم الذكاء الاصطناعي لتوليد أسئلة من المصادر",

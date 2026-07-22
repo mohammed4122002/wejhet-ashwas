@@ -105,10 +105,15 @@ export default function MaterialsPage() {
 
     setSaving(true);
     try {
+      // Sanitize filename - remove Arabic chars and special chars
+      const sanitizedName = file.name
+        .replace(/[^\w.-]/g, '')
+        .substring(0, 50) || `file-${Date.now()}`;
+
       // Create FormData with file
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("path", `materials/${Date.now()}-${file.name}`);
+      formData.append("path", `materials/${Date.now()}-${sanitizedName}`);
       formData.append("bucket", "all-materials");
 
       // Upload to Supabase Storage

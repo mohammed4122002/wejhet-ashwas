@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PDFDocument } from "pdf-lib";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isAdminEmail } from "@/lib/supabase/admin";
 
-// استخراج الأسئلة قد يتطلب تحميل ملف كبير + معالجته عبر OpenAI،
-// لذلك نرفع مهلة تنفيذ الدالة ونستخدم بيئة Node (نحتاج Buffer).
+// استخراج الأسئلة قد يتطلب تحميل ملف كبير + معالجته عبر OpenAI صفحةً صفحة،
+// لذلك نرفع مهلة تنفيذ الدالة ونستخدم بيئة Node (نحتاج Buffer + pdf-lib).
 export const runtime = "nodejs";
+// 60 ثانية آمنة على جميع خطط Vercel (Hobby يقصّ ما فوقها).
 export const maxDuration = 60;
+
+// عدد الصفحات في كل دفعة تُرسل إلى النموذج (نطاق صغير = استخراج شامل ودقيق).
+const PAGES_PER_BATCH = 3;
+// عدد الطلبات المتوازية إلى OpenAI (توازن بين السرعة وحدود المعدّل).
+const CONCURRENCY = 5;
+// ميزانية زمنية ناعمة: نتوقف قبل حدّ الدالة ونُرجع ما جُمِع + نقطة الاستئناف.
+const TIME_BUDGET_MS = 50_000;
+// أقصى عدد صفحات نُعالجها في الاستدعاء الواحد (الباقي يُستأنف).
+const MAX_PAGES_PER_CALL = 30;
 
 interface MaterialRow {
   id: string;
@@ -34,8 +45,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = (await request.json()) as { material_id?: string };
+    const body = (await request.json()) as {
+      material_id?: string;
+      start_page?: number; // للاستئناف في الملفات الكبيرة (1-indexed)
+    };
     const { material_id } = body;
+    const startPage = Math.max(1, Number(body.start_page) || 1);
 
     if (!material_id) {
       return NextResponse.json({ error: "material_id مطلوب" }, { status: 400 });
@@ -85,10 +100,22 @@ export async function POST(request: NextRequest) {
     // 3) وجّه حسب النوع الفعلي.
     let questions: unknown[] = [];
     let detectionInfo = "";
+    let totalPages = 0;
+    let processedThrough = 0; // آخر صفحة تمّت معالجتها (1-indexed)
+    let nextStartPage: number | null = null;
 
     if (mime === "application/pdf") {
       detectionInfo = "PDF (نص + صور)";
-      questions = await extractFromPdf(downloaded, material, openaiApiKey);
+      const result = await extractFromPdf(
+        downloaded,
+        material,
+        openaiApiKey,
+        startPage
+      );
+      questions = result.questions;
+      totalPages = result.totalPages;
+      processedThrough = result.processedThrough;
+      nextStartPage = result.nextStartPage;
     } else if (mime.startsWith("image/")) {
       detectionInfo = "صورة";
       questions = await extractFromImage(downloaded, mime, material, openaiApiKey);
@@ -111,12 +138,28 @@ export async function POST(request: NextRequest) {
     // 4) حدّد المادة (subject_id) المطابقة لحفظ الأسئلة لاحقاً.
     const subjectId = await resolveSubjectId(admin, material.subject);
 
-    console.log(`✅ Extracted ${questions.length} questions`);
+    console.log(
+      `✅ Extracted ${questions.length} questions | pages ${startPage}-${processedThrough}/${totalPages}`
+    );
+
+    const done = nextStartPage === null;
+    let message = `تم استخراج ${questions.length} سؤالاً من ${detectionInfo}`;
+    if (totalPages > 0) {
+      message += done
+        ? ` — اكتملت كل الصفحات (${totalPages}).`
+        : ` — عولجت الصفحات ${startPage}–${processedThrough} من ${totalPages}. اضغط "استكمل الاستخراج" لجلب الباقي.`;
+    }
 
     return NextResponse.json({
       success: true,
       extracted_questions: questions,
       resolved_subject_id: subjectId,
+      pagination: {
+        total_pages: totalPages,
+        processed_through: processedThrough,
+        next_start_page: nextStartPage,
+        done,
+      },
       material: {
         id: material.id,
         title: material.title,
@@ -128,7 +171,7 @@ export async function POST(request: NextRequest) {
         total_questions_improved: questions.length,
         materials_processed: [material.id],
       },
-      message: `تم استخراج ${questions.length} سؤالاً من ${detectionInfo}`,
+      message,
     });
   } catch (e) {
     console.error("❌ Smart extraction error:", e);
@@ -247,25 +290,142 @@ function detectMime(buf: Buffer): string {
 // استدعاءات OpenAI
 // ─────────────────────────────────────────────────────────────
 
+interface PdfExtractionResult {
+  questions: unknown[];
+  totalPages: number;
+  processedThrough: number; // آخر صفحة عولجت فعلياً (1-indexed)
+  nextStartPage: number | null; // null إذا اكتمل الملف
+}
+
+/**
+ * يستخرج الأسئلة من ملف PDF عبر تقسيمه إلى دفعات صغيرة من الصفحات،
+ * وإرسال كل دفعة على حدة إلى النموذج. النطاق الصغير لكل طلب يضمن قراءة
+ * "كل" الأسئلة بدل الاكتفاء بعيّنة. يدعم الاستئناف عبر startPage عند
+ * تجاوز الميزانية الزمنية للدالة.
+ */
 async function extractFromPdf(
   buf: Buffer,
   material: MaterialRow,
-  apiKey: string
-): Promise<unknown[]> {
-  const base64 = buf.toString("base64");
-  const dataUrl = `data:application/pdf;base64,${base64}`;
-
-  const content = await callOpenAI(apiKey, [
-    { type: "text", text: buildPrompt(material) },
-    {
-      type: "file",
-      file: {
-        filename: `${material.title || "material"}.pdf`,
-        file_data: dataUrl,
+  apiKey: string,
+  startPage: number
+): Promise<PdfExtractionResult> {
+  let src: PDFDocument;
+  try {
+    src = await PDFDocument.load(buf, { ignoreEncryption: true });
+  } catch (e) {
+    // ملف PDF غير قابل للتقسيم — استخراج بمحاولة واحدة كحلّ احتياطي.
+    console.warn("pdf-lib load failed, falling back to single-shot:", e);
+    const content = await callOpenAI(apiKey, [
+      { type: "text", text: buildBatchPrompt(material, 1, 1) },
+      {
+        type: "file",
+        file: {
+          filename: `${material.title || "material"}.pdf`,
+          file_data: `data:application/pdf;base64,${buf.toString("base64")}`,
+        },
       },
-    },
-  ]);
-  return parseQuestions(content);
+    ]);
+    return {
+      questions: parseQuestions(content),
+      totalPages: 0,
+      processedThrough: 0,
+      nextStartPage: null,
+    };
+  }
+
+  const totalPages = src.getPageCount();
+  const startIdx = Math.min(Math.max(0, startPage - 1), Math.max(0, totalPages - 1));
+  // نُعالِج نافذة محدودة من الصفحات في كل استدعاء (حدّ للذاكرة والزمن)،
+  // والباقي يُستأنف عبر next_start_page.
+  const endIdx = Math.min(totalPages, startIdx + MAX_PAGES_PER_CALL);
+
+  // ── المرحلة 1: بناء الملفات الفرعية تسلسلياً (pdf-lib ليست آمنة للتوازي). ──
+  interface Batch {
+    from: number; // 1-indexed
+    to: number; // 1-indexed
+    lastIdx: number; // 0-indexed
+    base64: string;
+  }
+  const batches: Batch[] = [];
+  for (let i = startIdx; i < endIdx; i += PAGES_PER_BATCH) {
+    const pageIndices: number[] = [];
+    for (let p = i; p < Math.min(i + PAGES_PER_BATCH, endIdx); p++) {
+      pageIndices.push(p);
+    }
+    const subDoc = await PDFDocument.create();
+    const copied = await subDoc.copyPages(src, pageIndices);
+    copied.forEach((pg) => subDoc.addPage(pg));
+    const subBytes = await subDoc.save();
+    batches.push({
+      from: pageIndices[0] + 1,
+      to: pageIndices[pageIndices.length - 1] + 1,
+      lastIdx: pageIndices[pageIndices.length - 1],
+      base64: Buffer.from(subBytes).toString("base64"),
+    });
+  }
+
+  // ── المرحلة 2: استدعاء OpenAI بتوازٍ محدود مع ميزانية زمنية. ──
+  const started = Date.now();
+  const collected: unknown[] = [];
+  let processedThroughIdx = startIdx - 1; // آخر صفحة عولجت (0-indexed)
+  let budgetHit = false;
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < batches.length) {
+      if (Date.now() - started > TIME_BUDGET_MS) {
+        budgetHit = true;
+        return;
+      }
+      const batch = batches[cursor++];
+      const content = await callOpenAI(apiKey, [
+        { type: "text", text: buildBatchPrompt(material, batch.from, batch.to) },
+        {
+          type: "file",
+          file: {
+            filename: `pages-${batch.from}.pdf`,
+            file_data: `data:application/pdf;base64,${batch.base64}`,
+          },
+        },
+      ]);
+      collected.push(...parseQuestions(content));
+      if (batch.lastIdx > processedThroughIdx) {
+        processedThroughIdx = batch.lastIdx;
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, batches.length) }, worker)
+  );
+
+  const processedThrough = processedThroughIdx + 1; // → 1-indexed
+  const moreRemaining = budgetHit || endIdx < totalPages;
+  const nextStartPage =
+    moreRemaining && processedThrough < totalPages ? processedThrough + 1 : null;
+
+  return {
+    questions: dedupeQuestions(collected),
+    totalPages,
+    processedThrough,
+    nextStartPage,
+  };
+}
+
+/** يزيل الأسئلة المكرّرة اعتماداً على أول جزء من النص المحسّن. */
+function dedupeQuestions(items: unknown[]): unknown[] {
+  const seen = new Set<string>();
+  const out: unknown[] = [];
+  for (const item of items) {
+    const q = item as { improved_text?: string; original_text?: string };
+    const key = normalizeArabic(
+      (q.improved_text || q.original_text || "").slice(0, 120)
+    );
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
 }
 
 async function extractFromImage(
@@ -333,20 +493,7 @@ async function callOpenAI(
 // أدوات مساعدة
 // ─────────────────────────────────────────────────────────────
 
-function buildPrompt(material: MaterialRow): string {
-  return `استخرج جميع الأسئلة الموجودة في هذا الملف الخاص بمادة "${
-    material.subject || "غير محددة"
-  }" (${material.title}).
-
-التعليمات:
-1. اقرأ كل الأسئلة سواء كانت نصاً مطبوعاً أو داخل صور أو مكتوبة بخط اليد.
-2. حسّن الصياغة العربية والإملاء مع الحفاظ على المعنى الأصلي تماماً.
-3. استخرج الخيارات (أ، ب، ج، د) إن وُجدت.
-4. حدّد الإجابة الصحيحة إن أمكن تحديدها من الملف، وإلا اجعلها الخيار الأول.
-5. حدّد مستوى الصعوبة: easy أو medium أو hard.
-6. لا تختلق أسئلة غير موجودة، ولا تحذف أسئلة موجودة.
-
-أرجع النتيجة بهذه الصيغة فقط (JSON):
+const JSON_SHAPE = `أرجع النتيجة بهذه الصيغة فقط (JSON):
 {
   "questions": [
     {
@@ -363,6 +510,43 @@ function buildPrompt(material: MaterialRow): string {
     }
   ]
 }`;
+
+const COMMON_RULES = `التعليمات:
+1. اقرأ كل الأسئلة سواء كانت نصاً مطبوعاً أو داخل صور أو مكتوبة بخط اليد.
+2. حسّن الصياغة العربية والإملاء مع الحفاظ على المعنى الأصلي تماماً.
+3. استخرج الخيارات (أ، ب، ج، د) إن وُجدت.
+4. حدّد الإجابة الصحيحة إن أمكن تحديدها من الملف، وإلا اجعلها الخيار الأول.
+5. حدّد مستوى الصعوبة: easy أو medium أو hard.
+6. لا تختلق أسئلة غير موجودة، ولا تحذف أسئلة موجودة.`;
+
+// للصور والملفات النصية (طلب واحد لكامل المحتوى).
+function buildPrompt(material: MaterialRow): string {
+  return `استخرج جميع الأسئلة الموجودة في هذا الملف الخاص بمادة "${
+    material.subject || "غير محددة"
+  }" (${material.title}).
+
+${COMMON_RULES}
+
+${JSON_SHAPE}`;
+}
+
+// لكل دفعة صفحات من ملف PDF — نُشدّد على الاستخراج الكامل والشامل.
+function buildBatchPrompt(
+  material: MaterialRow,
+  fromPage: number,
+  toPage: number
+): string {
+  const pageInfo =
+    fromPage === toPage ? `صفحة ${fromPage}` : `الصفحات ${fromPage}–${toPage}`;
+  return `هذا الملف يحتوي ${pageInfo} من بنك أسئلة مادة "${
+    material.subject || "غير محددة"
+  }".
+
+استخرج **كل** الأسئلة الموجودة في هذه الصفحات دون استثناء ودون تلخيص أو اختيار عيّنة — كل سؤال يظهر في الصفحات يجب أن يكون في الناتج. إن وُجدت عشرات الأسئلة فأخرِجها كلها.
+
+${COMMON_RULES}
+
+${JSON_SHAPE}`;
 }
 
 function parseQuestions(content: string): unknown[] {

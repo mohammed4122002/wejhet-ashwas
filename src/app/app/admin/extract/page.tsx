@@ -26,6 +26,22 @@ interface Subject {
   name_ar: string;
 }
 
+// إزالة الأسئلة المكرّرة عند دمج نتائج دفعات متعددة.
+function dedupeByText(items: ExtractedQuestion[]): ExtractedQuestion[] {
+  const seen = new Set<string>();
+  const out: ExtractedQuestion[] = [];
+  for (const q of items) {
+    const key = (q.improved_text || q.original_text || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(q);
+  }
+  return out;
+}
+
 export default function ExtractQuestionsPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -36,6 +52,8 @@ export default function ExtractQuestionsPage() {
   const [showResults, setShowResults] = useState(false);
   const [message, setMessage] = useState("");
   const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  // صفحة الاستئناف للملفات الكبيرة (null = اكتمل الملف أو لا يوجد تقسيم)
+  const [nextStartPage, setNextStartPage] = useState<number | null>(null);
 
   useEffect(() => {
     fetchMaterials();
@@ -64,25 +82,18 @@ export default function ExtractQuestionsPage() {
     }
   }
 
-  async function handleExtract() {
-    if (!selectedMaterial) {
-      setMessage("اختر ملفاً للاستخراج");
-      return;
-    }
-
+  async function runExtraction(startPage: number, append: boolean) {
     setLoading(true);
-    setMessage("");
+    setMessage(append ? "جاري استكمال الاستخراج…" : "");
     try {
-      console.log("🧠 Starting smart extraction for material:", selectedMaterial);
       const res = await fetch("/api/smart-extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           material_id: selectedMaterial,
+          start_page: startPage,
         }),
       });
-
-      console.log("📊 Response status:", res.status);
 
       if (!res.ok) {
         const error = await res.json();
@@ -90,10 +101,17 @@ export default function ExtractQuestionsPage() {
       }
 
       const data = await res.json();
-      setExtractedQuestions(data.extracted_questions || []);
+      const incoming: ExtractedQuestion[] = data.extracted_questions || [];
+
+      setExtractedQuestions((prev) =>
+        append ? dedupeByText([...prev, ...incoming]) : incoming
+      );
       setStats(data.summary);
-      // المادة المطابقة تلقائياً (يمكن للمشرف تغييرها قبل الحفظ)
-      setTargetSubjectId(data.resolved_subject_id || "");
+      setNextStartPage(data.pagination?.next_start_page ?? null);
+      if (!append) {
+        // المادة المطابقة تلقائياً (يمكن للمشرف تغييرها قبل الحفظ)
+        setTargetSubjectId(data.resolved_subject_id || "");
+      }
       setShowResults(true);
       setMessage(data.message);
     } catch (err) {
@@ -101,6 +119,21 @@ export default function ExtractQuestionsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleExtract() {
+    if (!selectedMaterial) {
+      setMessage("اختر ملفاً للاستخراج");
+      return;
+    }
+    setExtractedQuestions([]);
+    setNextStartPage(null);
+    await runExtraction(1, false);
+  }
+
+  async function handleContinueExtraction() {
+    if (!nextStartPage) return;
+    await runExtraction(nextStartPage, true);
   }
 
   async function handleSaveExtractedQuestions() {
@@ -139,6 +172,7 @@ export default function ExtractQuestionsPage() {
 
       setMessage(`تم حفظ ${extractedQuestions.length} أسئلة بنجاح`);
       setExtractedQuestions([]);
+      setNextStartPage(null);
       setShowResults(false);
       setSelectedMaterial("");
     } catch (err) {
@@ -159,12 +193,12 @@ export default function ExtractQuestionsPage() {
           <h1 className="text-2xl font-bold">الأسئلة المستخرجة</h1>
 
           {stats && (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <div className="text-3xl font-bold text-primary">
-                      {String((stats as Record<string, unknown>).total_questions_found || 0)}
+                      {extractedQuestions.length}
                     </div>
                     <p className="text-sm text-muted-foreground">أسئلة مستخرجة</p>
                   </div>
@@ -173,28 +207,33 @@ export default function ExtractQuestionsPage() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-primary">
-                      {String((stats as Record<string, unknown>).total_questions_improved || 0)}
-                    </div>
-                    <p className="text-sm text-muted-foreground">أسئلة محسّنة</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-primary">
-                      {String(
-                        ((stats as Record<string, unknown>).materials_processed as unknown[] | undefined)?.length || 0
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">ملفات</p>
+                    <div className="text-3xl font-bold text-primary">1</div>
+                    <p className="text-sm text-muted-foreground">ملف</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
           )}
         </div>
+
+        {nextStartPage !== null && (
+          <Card className="border-amber-500/40">
+            <CardContent className="pt-6 space-y-3">
+              <p className="text-sm">
+                الملف كبير ولم تكتمل كل صفحاته بعد. اضغط لاستكمال استخراج بقية
+                الأسئلة (تُضاف إلى القائمة الحالية).
+              </p>
+              <Button
+                onClick={handleContinueExtraction}
+                disabled={loading}
+                variant="secondary"
+                className="w-full"
+              >
+                {loading ? "جاري الاستكمال…" : "استكمل الاستخراج ⏩"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {message && (
           <div className="p-3 rounded bg-blue-50 dark:bg-blue-950 text-sm">
@@ -211,7 +250,8 @@ export default function ExtractQuestionsPage() {
               <select
                 value={targetSubjectId}
                 onChange={(e) => setTargetSubjectId(e.target.value)}
-                className="w-full p-2 rounded border border-gray-200 dark:border-gray-700 bg-background"
+                style={{ colorScheme: "dark" }}
+                className="w-full p-2 rounded border border-gray-200 dark:border-gray-700 bg-background text-foreground"
               >
                 <option value="">— اختر المادة —</option>
                 {subjects.map((s) => (
@@ -283,6 +323,7 @@ export default function ExtractQuestionsPage() {
             onClick={() => {
               setShowResults(false);
               setExtractedQuestions([]);
+              setNextStartPage(null);
               setMessage("");
             }}
             disabled={loading}

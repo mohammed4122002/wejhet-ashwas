@@ -34,7 +34,7 @@ function dedupeByText(items: ExtractedQuestion[]): ExtractedQuestion[] {
     const key = (q.improved_text || q.original_text || "")
       .replace(/\s+/g, " ")
       .trim()
-      .slice(0, 120);
+      .toLowerCase();
     if (!key || seen.has(key)) continue;
     seen.add(key);
     out.push(q);

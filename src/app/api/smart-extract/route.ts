@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 // عدد الصفحات في كل دفعة تُرسل إلى النموذج (نطاق صغير = استخراج شامل ودقيق).
-const PAGES_PER_BATCH = 3;
+const PAGES_PER_BATCH = 2;
 // عدد الطلبات المتوازية إلى OpenAI (توازن بين السرعة وحدود المعدّل).
 const CONCURRENCY = 5;
 // ميزانية زمنية ناعمة: نتوقف قبل حدّ الدالة ونُرجع ما جُمِع + نقطة الاستئناف.
@@ -388,7 +388,11 @@ async function extractFromPdf(
           },
         },
       ]);
-      collected.push(...parseQuestions(content));
+      const parsed = parseQuestions(content);
+      console.log(
+        `📄 pages ${batch.from}-${batch.to}: ${parsed.length} questions`
+      );
+      collected.push(...parsed);
       if (batch.lastIdx > processedThroughIdx) {
         processedThroughIdx = batch.lastIdx;
       }
@@ -418,9 +422,13 @@ function dedupeQuestions(items: unknown[]): unknown[] {
   const out: unknown[] = [];
   for (const item of items) {
     const q = item as { improved_text?: string; original_text?: string };
-    const key = normalizeArabic(
-      (q.improved_text || q.original_text || "").slice(0, 120)
-    );
+    // مفتاح التكرار = النص الكامل بعد توحيد المسافات فقط (نُبقي الأرقام
+    // والرموز)، حتى لا نحذف أسئلة مختلفة تتشابه في بدايتها. الصفحات مقسّمة
+    // دون تداخل، فالهدف فقط منع تكرار سؤال يظهر على حدود صفحتين.
+    const key = (q.improved_text || q.original_text || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
     if (!key || seen.has(key)) continue;
     seen.add(key);
     out.push(item);

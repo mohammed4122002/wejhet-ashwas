@@ -252,9 +252,6 @@ export default function BankPage() {
                             )}
                           >
                             {l.name_ar}
-                            <span className="text-text-muted">
-                              {countByLesson.get(l.id)}
-                            </span>
                           </button>
                         ))}
                       </div>

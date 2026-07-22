@@ -2,9 +2,21 @@
 
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Plus, FileText, ChevronLeft } from "lucide-react";
+import { Plus, FileText, ChevronLeft, Sparkles } from "lucide-react";
 
 const ADMIN_OPTIONS = [
+  {
+    href: "/app/admin/extract",
+    label: "استخراج وتحسين الأسئلة",
+    description: "استخرج الأسئلة من الملفات وحسّن صياغتها تلقائياً",
+    icon: Sparkles,
+  },
+  {
+    href: "/app/admin/generate",
+    label: "توليد الأسئلة التلقائي",
+    description: "استخدم الذكاء الاصطناعي لتوليد أسئلة من المصادر",
+    icon: Sparkles,
+  },
   {
     href: "/app/admin/questions",
     label: "إدارة الأسئلة",

@@ -70,16 +70,36 @@ export async function hydrateFromServer(userId: string): Promise<void> {
     }
   }
 
+  /**
+   * استبدال كامل لجدول مرجعي (منهج للقراءة فقط، لا تعديل محلي عليه):
+   * يكتب صفوف الخادم، ثم يحذف أي صفّ محلي لم يعد موجوداً بالخادم (منهج قديم
+   * تغيّر اسمه أو أُعيد بناؤه) — يمنع تراكم صفوف يتيمة تظهر كتكرار بالواجهة.
+   * لا يلمس شيئاً لو رجعت القائمة فارغة (حماية من مسح الكاش عند خطأ مؤقّت).
+   */
+  async function replaceRefTable<T extends { id: string }>(
+    table: Table<T, string>,
+    rows: T[] | null
+  ) {
+    if (!rows?.length) return;
+    await table.bulkPut(rows);
+    const currentIds = new Set(rows.map((r) => r.id));
+    const staleIds = (await table.toArray())
+      .map((r) => r.id)
+      .filter((id) => !currentIds.has(id));
+    if (staleIds.length) await table.bulkDelete(staleIds);
+  }
+
   await mergePut(db.schedule_slots, slots.data, true);
   await mergePut(db.tasks, tasks.data, true);
   await mergePut(db.exam_schedule, exams.data, false);
   await mergePut(db.doubt_box_entries, doubts.data, false);
   await mergePut(db.pomodoro_sessions, pomodoro.data, false);
 
-  // المنهج: استبدال مباشر (بيانات مرجعية للقراءة فقط، لا تعارض محلي)
-  if (subjects.data?.length) await db.subjects.bulkPut(subjects.data);
-  if (units.data?.length) await db.units.bulkPut(units.data);
-  if (lessons.data?.length) await db.lessons.bulkPut(lessons.data);
+  // المنهج: استبدال كامل (بيانات مرجعية للقراءة فقط، لا تعارض محلي) —
+  // يحذف صفوف المنهج القديمة اليتيمة بعد أي إعادة بناء للمنهج بالخادم.
+  await replaceRefTable(db.subjects, subjects.data);
+  await replaceRefTable(db.units, units.data);
+  await replaceRefTable(db.lessons, lessons.data);
   if (mockExams.data?.length) await db.mock_exams.bulkPut(mockExams.data);
   await mergePut(db.mock_exam_attempts, mockAttempts.data, false);
 

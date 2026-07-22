@@ -133,7 +133,7 @@ async function extractFromImageFile(
 
   const imageUrlContent = imageMediaType ?
     { url: imageUrl, detail: "high" as const } :
-    imageUrl;
+    { url: imageUrl };
 
   const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

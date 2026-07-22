@@ -54,8 +54,8 @@ export default function ExtractQuestionsPage() {
     setLoading(true);
     setMessage("");
     try {
-      console.log("🖼️ Starting image extraction for material:", selectedMaterial);
-      const res = await fetch("/api/extract-from-images", {
+      console.log("🧠 Starting smart extraction for material:", selectedMaterial);
+      const res = await fetch("/api/smart-extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

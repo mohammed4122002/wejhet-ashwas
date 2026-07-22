@@ -34,25 +34,30 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient();
-    const buffer = await file.arrayBuffer();
+    const buffer = Buffer.from(await file.arrayBuffer());
 
     const { data, error } = await admin.storage
       .from(bucket)
       .upload(path, buffer, {
-        contentType: file.type,
-        upsert: false,
+        contentType: file.type || "application/octet-stream",
+        upsert: true,
       });
 
     if (error) {
+      console.error("Upload error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Get public URL
-    const { data: publicData } = admin.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
+    if (!data?.path) {
+      return NextResponse.json({ error: "فشل الحصول على مسار الملف" }, { status: 500 });
+    }
 
-    return NextResponse.json({ publicUrl: publicData.publicUrl });
+    // Get public URL
+    const publicUrl = admin.storage
+      .from(bucket)
+      .getPublicUrl(data.path).data.publicUrl;
+
+    return NextResponse.json({ publicUrl });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "فشل الرفع" },

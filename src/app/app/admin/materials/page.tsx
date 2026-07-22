@@ -68,12 +68,14 @@ export default function MaterialsPage() {
 
   useEffect(() => {
     fetchMaterials();
-    const interval = setInterval(() => {
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
       const t = setTimeout(() => setToast(null), 3000);
       return () => clearTimeout(t);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    }
+  }, [toast]);
 
   async function fetchMaterials() {
     try {

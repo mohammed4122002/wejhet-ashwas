@@ -36,7 +36,7 @@ export default function ExtractQuestionsPage() {
 
   async function fetchMaterials() {
     try {
-      const res = await fetch("/api/admin/materials");
+      const res = await fetch("/api/public/materials");
       if (!res.ok) throw new Error("Failed to fetch materials");
       const data = await res.json();
       setMaterials(data.materials || []);

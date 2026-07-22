@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isAdminEmail } from "@/lib/supabase/admin";
+import type { SubjectTrack } from "@/lib/supabase/database.types";
 
 // استخراج الأسئلة قد يتطلب تحميل ملف كبير + معالجته عبر OpenAI صفحةً صفحة،
 // لذلك نرفع مهلة تنفيذ الدالة ونستخدم بيئة Node (نحتاج Buffer + pdf-lib).
@@ -22,6 +23,7 @@ interface MaterialRow {
   id: string;
   title: string;
   subject: string | null;
+  track: SubjectTrack;
   file_type: string;
   source_type: string;
   file_url: string;
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     const { data: material, error: materialError } = await admin
       .from("materials")
-      .select("id, title, subject, file_type, source_type, file_url")
+      .select("id, title, subject, track, file_type, source_type, file_url")
       .eq("id", material_id)
       .single<MaterialRow>();
 
@@ -136,7 +138,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 4) حدّد المادة (subject_id) المطابقة لحفظ الأسئلة لاحقاً.
-    const subjectId = await resolveSubjectId(admin, material.subject);
+    const subjectId = await resolveSubjectId(
+      admin,
+      material.subject,
+      material.track
+    );
 
     console.log(
       `✅ Extracted ${questions.length} questions | pages ${startPage}-${processedThrough}/${totalPages}`
@@ -572,26 +578,39 @@ function parseQuestions(content: string): unknown[] {
 /**
  * يطابق اسم مادة الملف (نص حر مثل "تكنولوجيا"/"احياء") مع صف في جدول subjects،
  * ويُرجع الـ id أو null إن تعذّر. الحفظ يقبل null (العمود nullable).
+ *
+ * بعض المواد لها نسخة علمي ونسخة أدبي بنفس الاسم تقريباً (تكنولوجيا، رياضيات)،
+ * فمطابقة الاسم وحدها غامضة. نستخدم تخصص الملف (materialTrack) لتفضيل النسخة
+ * المطابقة أولاً: نفس التخصص، ثم "مشترك"، وأخيراً أي تطابق كحلّ احتياطي حتى لا
+ * يفشل الربط كلياً لو ما في تطابق مضبوط بنفس التخصص.
  */
 async function resolveSubjectId(
   admin: ReturnType<typeof createAdminClient>,
-  subjectName: string | null
+  subjectName: string | null,
+  materialTrack: SubjectTrack
 ): Promise<string | null> {
   if (!subjectName) return null;
 
   const { data: subjects } = await admin
     .from("subjects")
-    .select("id, name_ar");
+    .select("id, name_ar, track");
   if (!subjects || subjects.length === 0) return null;
 
   const target = normalizeArabic(subjectName);
-  for (const s of subjects) {
+  const matches = subjects.filter((s) => {
     const candidate = normalizeArabic(s.name_ar);
-    if (candidate.includes(target) || target.includes(candidate)) {
-      return s.id;
-    }
-  }
-  return null;
+    return candidate.includes(target) || target.includes(candidate);
+  });
+  if (matches.length === 0) return null;
+  if (matches.length === 1) return matches[0].id;
+
+  const sameTrack = matches.find((s) => s.track === materialTrack);
+  if (sameTrack) return sameTrack.id;
+
+  const shared = matches.find((s) => s.track === "shared");
+  if (shared) return shared.id;
+
+  return matches[0].id;
 }
 
 function normalizeArabic(input: string): string {

@@ -452,6 +452,7 @@ export interface Database {
           title: string;
           description: string | null;
           subject: string | null;
+          track: SubjectTrack;
           file_type: string;
           source_type: string;
           file_url: string;
@@ -466,6 +467,7 @@ export interface Database {
           title: string;
           description?: string | null;
           subject?: string | null;
+          track?: SubjectTrack;
           file_type: string;
           source_type: string;
           file_url: string;

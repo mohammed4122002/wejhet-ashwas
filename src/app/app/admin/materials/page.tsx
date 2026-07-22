@@ -6,9 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Upload,
   Link as LinkIcon,
   Trash2,
+  Pencil,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -18,12 +25,14 @@ import {
   File,
   ExternalLink,
 } from "lucide-react";
+import type { SubjectTrack } from "@/lib/supabase/database.types";
 
 interface Material {
   id: string;
   title: string;
   description?: string;
   subject?: string;
+  track: SubjectTrack;
   file_type: "pdf" | "word" | "markdown" | "excel" | "google_drive";
   source_type: "supabase_storage" | "external_link";
   file_url: string;
@@ -38,6 +47,16 @@ const FILE_TYPES = [
   { value: "markdown", label: "Markdown (.md)", icon: FileCode },
   { value: "excel", label: "Excel (.xlsx)", icon: Sheet },
 ];
+
+const TRACK_OPTIONS: { value: SubjectTrack; label: string }[] = [
+  { value: "scientific", label: "علمي" },
+  { value: "literary", label: "أدبي" },
+  { value: "shared", label: "مشترك" },
+];
+
+function trackLabel(track: SubjectTrack): string {
+  return TRACK_OPTIONS.find((t) => t.value === track)?.label ?? track;
+}
 
 function getFileIcon(type: string) {
   const file = FILE_TYPES.find((f) => f.value === type);
@@ -55,6 +74,7 @@ export default function MaterialsPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("");
+  const [track, setTrack] = useState<SubjectTrack>("shared");
   const [fileType, setFileType] = useState("pdf");
   const [tags, setTags] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -63,8 +83,16 @@ export default function MaterialsPage() {
   const [driveTitle, setDriveTitle] = useState("");
   const [driveDescription, setDriveDescription] = useState("");
   const [driveSubject, setDriveSubject] = useState("");
+  const [driveTrack, setDriveTrack] = useState<SubjectTrack>("shared");
   const [driveUrl, setDriveUrl] = useState("");
   const [driveTags, setDriveTags] = useState("");
+
+  // Edit modal state
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubject, setEditSubject] = useState("");
+  const [editTrack, setEditTrack] = useState<SubjectTrack>("shared");
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     fetchMaterials();
@@ -136,6 +164,7 @@ export default function MaterialsPage() {
           title: title.trim(),
           description: description.trim() || null,
           subject: subject.trim() || null,
+          track,
           file_type: fileType,
           source_type: "supabase_storage",
           file_url: publicUrl,
@@ -153,6 +182,7 @@ export default function MaterialsPage() {
       setTitle("");
       setDescription("");
       setSubject("");
+      setTrack("shared");
       setFileType("pdf");
       setTags("");
       setFile(null);
@@ -186,6 +216,7 @@ export default function MaterialsPage() {
           title: driveTitle.trim(),
           description: driveDescription.trim() || null,
           subject: driveSubject.trim() || null,
+          track: driveTrack,
           file_type: "google_drive",
           source_type: "external_link",
           file_url: driveUrl.trim(),
@@ -202,6 +233,7 @@ export default function MaterialsPage() {
       setDriveTitle("");
       setDriveDescription("");
       setDriveSubject("");
+      setDriveTrack("shared");
       setDriveUrl("");
       setDriveTags("");
       fetchMaterials();
@@ -233,6 +265,51 @@ export default function MaterialsPage() {
         type: "error",
         msg: e instanceof Error ? e.message : "فشل الحذف",
       });
+    }
+  }
+
+  function openEdit(material: Material) {
+    setEditingMaterial(material);
+    setEditTitle(material.title);
+    setEditSubject(material.subject || "");
+    setEditTrack(material.track);
+  }
+
+  async function handleSaveEdit() {
+    if (!editingMaterial) return;
+    if (!editTitle.trim()) {
+      setToast({ type: "error", msg: "أدخل اسم الملف" });
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      const res = await fetch("/api/admin/materials", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingMaterial.id,
+          title: editTitle.trim(),
+          subject: editSubject.trim() || null,
+          track: editTrack,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "فشل التعديل");
+      }
+
+      setToast({ type: "success", msg: "تم حفظ التعديلات بنجاح" });
+      setEditingMaterial(null);
+      fetchMaterials();
+    } catch (e) {
+      setToast({
+        type: "error",
+        msg: e instanceof Error ? e.message : "فشل التعديل",
+      });
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -319,6 +396,23 @@ export default function MaterialsPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
+              <Label>التخصص *</Label>
+              <div className="relative">
+                <select
+                  value={track}
+                  onChange={(e) => setTrack(e.target.value as SubjectTrack)}
+                  style={{ colorScheme: "dark" }}
+                  className="flex h-11 w-full appearance-none rounded-input border border-strong bg-bg-surface pe-10 ps-4 text-body text-text-primary"
+                >
+                  {TRACK_OPTIONS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
               <Label>نوع الملف *</Label>
               <div className="relative">
                 <select
@@ -403,6 +497,23 @@ export default function MaterialsPage() {
                 placeholder="مثال: أحياء"
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label>التخصص *</Label>
+              <div className="relative">
+                <select
+                  value={driveTrack}
+                  onChange={(e) => setDriveTrack(e.target.value as SubjectTrack)}
+                  style={{ colorScheme: "dark" }}
+                  className="flex h-11 w-full appearance-none rounded-input border border-strong bg-bg-surface pe-10 ps-4 text-body text-text-primary"
+                >
+                  {TRACK_OPTIONS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div className="col-span-full flex flex-col gap-2">
               <Label>رابط Google Drive *</Label>
               <Input
@@ -481,6 +592,9 @@ export default function MaterialsPage() {
                             {material.subject}
                           </span>
                         )}
+                        <span className="text-secondary bg-bg-surface text-text-secondary rounded px-2 py-1 border border-subtle">
+                          {trackLabel(material.track)}
+                        </span>
                         {material.tags.map((tag) => (
                           <span
                             key={tag}
@@ -503,6 +617,13 @@ export default function MaterialsPage() {
                       <ExternalLink className="size-5 text-brand-400" />
                     </a>
                     <button
+                      onClick={() => openEdit(material)}
+                      className="p-2 rounded-pill hover:bg-brand-400/10"
+                      title="تعديل"
+                    >
+                      <Pencil className="size-5 text-brand-400" />
+                    </button>
+                    <button
                       onClick={() => handleDelete(material.id)}
                       className="p-2 rounded-pill hover:bg-red-500/10"
                       title="حذف"
@@ -516,6 +637,69 @@ export default function MaterialsPage() {
           </div>
         )}
       </Card>
+
+      {/* Edit Modal */}
+      <Dialog
+        open={editingMaterial !== null}
+        onOpenChange={(open) => !open && setEditingMaterial(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تعديل الملف</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label>اسم الملف *</Label>
+              <Input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>المادة</Label>
+              <Input
+                value={editSubject}
+                onChange={(e) => setEditSubject(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>التخصص *</Label>
+              <div className="relative">
+                <select
+                  value={editTrack}
+                  onChange={(e) => setEditTrack(e.target.value as SubjectTrack)}
+                  style={{ colorScheme: "dark" }}
+                  className="flex h-11 w-full appearance-none rounded-input border border-strong bg-bg-surface pe-10 ps-4 text-body text-text-primary"
+                >
+                  {TRACK_OPTIONS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleSaveEdit}
+                disabled={editSaving}
+                className="flex-1"
+              >
+                {editSaving ? "جاري الحفظ..." : "حفظ التعديلات"}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setEditingMaterial(null)}
+                disabled={editSaving}
+              >
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

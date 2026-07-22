@@ -54,13 +54,16 @@ export default function ExtractQuestionsPage() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch("/api/admin/extract-and-improve-questions", {
+      console.log("🚀 Starting extraction for material:", selectedMaterial);
+      const res = await fetch("/api/extract-questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           material_id: selectedMaterial,
         }),
       });
+
+      console.log("📊 Response status:", res.status);
 
       if (!res.ok) {
         const error = await res.json();

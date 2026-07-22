@@ -104,15 +104,36 @@ async function extractFromImageFile(
   console.log("🖼️ Extracting from image file");
 
   let imageUrl = material.file_url as string;
+  let imageMediaType: string | undefined = undefined;
 
-  // تحويل رابط Google Drive
+  // تحويل رابط Google Drive - استخدم export=download للحصول على الصورة الفعلية
   if (material.source_type === "external_link" && imageUrl.includes("drive.google.com")) {
-    const fileId = imageUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
+    const fileId = imageUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1] ||
+                   imageUrl.match(/id=([a-zA-Z0-9-_]+)/)?.[1];
     if (fileId) {
-      imageUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
-      console.log("🔄 Converted Google Drive URL");
+      // استخدم download بدلاً من view للحصول على الملف الفعلي
+      imageUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+      console.log("🔄 Converted Google Drive URL to download format");
     }
   }
+
+  // حاول تحديد نوع الصورة من امتداد الملف أو الـ URL
+  if (imageUrl.toLowerCase().includes(".png")) {
+    imageMediaType = "image/png";
+  } else if (imageUrl.toLowerCase().includes(".jpg") || imageUrl.toLowerCase().includes(".jpeg")) {
+    imageMediaType = "image/jpeg";
+  } else if (imageUrl.toLowerCase().includes(".gif")) {
+    imageMediaType = "image/gif";
+  } else if (imageUrl.toLowerCase().includes(".webp")) {
+    imageMediaType = "image/webp";
+  }
+
+  console.log("🔗 Image URL:", imageUrl.substring(0, 100) + "...");
+  console.log("📸 Media type:", imageMediaType || "auto-detect");
+
+  const imageUrlContent = imageMediaType ?
+    { url: imageUrl, detail: "high" as const } :
+    imageUrl;
 
   const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -136,9 +157,7 @@ async function extractFromImageFile(
             },
             {
               type: "image_url",
-              image_url: {
-                url: imageUrl,
-              },
+              image_url: imageUrlContent,
             },
           ],
         },
@@ -150,7 +169,16 @@ async function extractFromImageFile(
 
   if (!openaiResponse.ok) {
     const error = await openaiResponse.json();
-    throw new Error(`OpenAI: ${error.error?.message || "Unknown error"}`);
+    const errorMsg = error.error?.message || "Unknown error";
+    console.error("❌ OpenAI error response:", errorMsg);
+
+    // إذا كان الخطأ عن صيغة الصورة، جرّب بدون تحديد media type
+    if (errorMsg.includes("unsupported") && imageMediaType) {
+      console.log("⚠️ Retrying without explicit media type...");
+      return retryWithoutMediaType(material, openaiApiKey, imageUrl);
+    }
+
+    throw new Error(`OpenAI: ${errorMsg}`);
   }
 
   const data = await openaiResponse.json();
@@ -192,6 +220,56 @@ async function extractFromTextFile(
   if (!openaiResponse.ok) {
     const error = await openaiResponse.json();
     throw new Error(`OpenAI: ${error.error?.message || "Unknown error"}`);
+  }
+
+  const data = await openaiResponse.json();
+  const content = data.choices?.[0]?.message?.content || "";
+
+  return parseQuestionsFromResponse(content);
+}
+
+async function retryWithoutMediaType(
+  material: Record<string, unknown>,
+  openaiApiKey: string,
+  imageUrl: string
+): Promise<{ questions: unknown[] }> {
+  const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${openaiApiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "أنت متخصص في استخراج أسئلة الامتحانات من الصور. أرجع JSON صحيح فقط.",
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: buildImageExtractionPrompt(material),
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageUrl,
+              },
+            },
+          ],
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 3000,
+    }),
+  });
+
+  if (!openaiResponse.ok) {
+    const error = await openaiResponse.json();
+    throw new Error(`OpenAI (retry): ${error.error?.message || "Unknown error"}`);
   }
 
   const data = await openaiResponse.json();

@@ -117,7 +117,10 @@ export default function MaterialsPage() {
         body: formData,
       });
 
-      if (!uploadRes.ok) throw new Error("فشل رفع الملف");
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json();
+        throw new Error(errData.error || `فشل الرفع (${uploadRes.status})`);
+      }
       const { publicUrl } = await uploadRes.json();
 
       // Save metadata to materials table

@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
     const path = formData.get("path") as string;
     const bucket = formData.get("bucket") as string;
 
+    console.log("Upload request:", { fileName: file?.name, path, bucket });
+
     if (!file) {
       return NextResponse.json({ error: "الملف مطلوب" }, { status: 400 });
     }
@@ -37,6 +39,8 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
+    console.log("Uploading to Supabase...", { bucket, path, fileSize: buffer.length });
+
     const { data, error } = await admin.storage
       .from(bucket)
       .upload(path, buffer, {
@@ -45,11 +49,12 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error("Upload error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Supabase upload error:", error);
+      return NextResponse.json({ error: `Supabase: ${error.message}` }, { status: 500 });
     }
 
     if (!data?.path) {
+      console.error("No path returned from upload");
       return NextResponse.json({ error: "فشل الحصول على مسار الملف" }, { status: 500 });
     }
 
@@ -58,8 +63,10 @@ export async function POST(request: NextRequest) {
       .from(bucket)
       .getPublicUrl(data.path).data.publicUrl;
 
+    console.log("Upload successful:", publicUrl);
     return NextResponse.json({ publicUrl });
   } catch (e) {
+    console.error("Upload exception:", e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "فشل الرفع" },
       { status: 500 }

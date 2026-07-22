@@ -10,11 +10,13 @@ export function createAdminClient() {
   return createClient<Database>(url, key);
 }
 
+// نفصل على الفواصل والفواصل المنقوطة والمسافات والأسطر الجديدة معاً،
+// حتى تعمل القائمة مهما كانت طريقة الإدخال (فاصلة، سطر جديد، أو مزيج).
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
-  .split(",")
+  .split(/[\s,;]+/)
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
 export function isAdminEmail(email: string): boolean {
-  return ADMIN_EMAILS.includes(email.toLowerCase());
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }

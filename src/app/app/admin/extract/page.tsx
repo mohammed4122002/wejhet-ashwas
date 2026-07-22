@@ -17,13 +17,20 @@ interface ExtractedQuestion {
   original_text: string;
   improved_text: string;
   choices?: Array<{ key: string; text: string }>;
+  correct_answer?: string;
   difficulty?: string;
-  material_id: string;
+}
+
+interface Subject {
+  id: string;
+  name_ar: string;
 }
 
 export default function ExtractQuestionsPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<string>("");
+  const [targetSubjectId, setTargetSubjectId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -32,16 +39,28 @@ export default function ExtractQuestionsPage() {
 
   useEffect(() => {
     fetchMaterials();
+    fetchSubjects();
   }, []);
 
   async function fetchMaterials() {
     try {
-      const res = await fetch("/api/public/materials");
+      const res = await fetch("/api/admin/materials");
       if (!res.ok) throw new Error("Failed to fetch materials");
       const data = await res.json();
       setMaterials(data.materials || []);
     } catch {
       setMessage("فشل تحميل الملفات");
+    }
+  }
+
+  async function fetchSubjects() {
+    try {
+      const res = await fetch("/api/subjects");
+      if (!res.ok) return;
+      const data = await res.json();
+      setSubjects(data.subjects || []);
+    } catch {
+      // اختيار المادة يدوياً يبقى متاحاً حتى لو فشل الجلب
     }
   }
 
@@ -73,6 +92,8 @@ export default function ExtractQuestionsPage() {
       const data = await res.json();
       setExtractedQuestions(data.extracted_questions || []);
       setStats(data.summary);
+      // المادة المطابقة تلقائياً (يمكن للمشرف تغييرها قبل الحفظ)
+      setTargetSubjectId(data.resolved_subject_id || "");
       setShowResults(true);
       setMessage(data.message);
     } catch (err) {
@@ -83,8 +104,12 @@ export default function ExtractQuestionsPage() {
   }
 
   async function handleSaveExtractedQuestions() {
-    if (!selectedMaterial || extractedQuestions.length === 0) {
+    if (extractedQuestions.length === 0) {
       setMessage("لا توجد أسئلة للحفظ");
+      return;
+    }
+    if (!targetSubjectId) {
+      setMessage("اختر المادة التي ستُحفظ ضمنها الأسئلة");
       return;
     }
 
@@ -96,12 +121,12 @@ export default function ExtractQuestionsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subject_id: selectedMaterial,
+          subject_id: targetSubjectId,
           questions: extractedQuestions.map((q) => ({
             question_text: q.improved_text,
             choices: q.choices || [],
-            correct_answer: q.choices?.[0]?.key || "أ",
-            explanation_text: `مستخرجة من: ${material?.title}`,
+            correct_answer: q.correct_answer || q.choices?.[0]?.key || "أ",
+            explanation_text: `مستخرجة من: ${material?.title ?? "ملف"}`,
             difficulty: q.difficulty || "medium",
           })),
         }),
@@ -175,6 +200,31 @@ export default function ExtractQuestionsPage() {
           <div className="p-3 rounded bg-blue-50 dark:bg-blue-950 text-sm">
             {message}
           </div>
+        )}
+
+        {extractedQuestions.length > 0 && (
+          <Card>
+            <CardContent className="pt-6 space-y-2">
+              <label className="text-sm font-semibold">
+                احفظ الأسئلة ضمن مادة:
+              </label>
+              <select
+                value={targetSubjectId}
+                onChange={(e) => setTargetSubjectId(e.target.value)}
+                className="w-full p-2 rounded border border-gray-200 dark:border-gray-700 bg-background"
+              >
+                <option value="">— اختر المادة —</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name_ar}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                تم اقتراح المادة تلقائياً حسب اسم الملف؛ يمكنك تعديلها.
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         <div className="space-y-4">

@@ -12,16 +12,19 @@ import {
   Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QUESTION_BANK_ENABLED } from "@/lib/domain/feature-flags";
 
-const LINKS = [
+const ALL_LINKS = [
   { href: "/app", label: "اليوم", icon: ListTodo, exact: true },
   { href: "/app/schedule", label: "الجدول", icon: CalendarDays },
-  { href: "/app/bank", label: "بنك الأسئلة", icon: Library },
+  { href: "/app/bank", label: "بنك الأسئلة", icon: Library, requiresBank: true },
   { href: "/app/progress", label: "رحلتي", icon: BarChart3 },
   { href: "/app/rewards", label: "إنجازي", icon: Sparkles },
   { href: "/app/compete", label: "التنافسي", icon: Trophy },
   { href: "/app/doubts", label: "الشكوك", icon: HelpCircle },
 ];
+
+const LINKS = ALL_LINKS.filter((l) => !l.requiresBank || QUESTION_BANK_ENABLED);
 
 /** شريط تنقّل أقسام حلقة الاستخدام اليومي. */
 export function AppNav() {

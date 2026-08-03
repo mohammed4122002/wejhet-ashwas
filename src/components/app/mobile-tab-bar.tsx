@@ -10,14 +10,17 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QUESTION_BANK_ENABLED } from "@/lib/domain/feature-flags";
 
-const TABS = [
+const ALL_TABS = [
   { href: "/app", label: "اليوم", icon: ListTodo, exact: true },
   { href: "/app/schedule", label: "الجدول", icon: CalendarDays },
-  { href: "/app/bank", label: "البنك", icon: Library },
+  { href: "/app/bank", label: "البنك", icon: Library, requiresBank: true },
   { href: "/app/progress", label: "رحلتي", icon: BarChart3 },
   { href: "/app/more", label: "المزيد", icon: LayoutGrid },
 ];
+
+const TABS = ALL_TABS.filter((t) => !t.requiresBank || QUESTION_BANK_ENABLED);
 
 /** المسارات التابعة لتبويب «المزيد» — يبقى مفعّلاً وأنت داخلها. */
 const MORE_PATHS = [
@@ -42,7 +45,7 @@ export function MobileTabBar() {
       aria-label="التنقّل الرئيسي"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-subtle bg-bg-overlay pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
     >
-      <div className="grid grid-cols-5">
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
         {TABS.map(({ href, label, icon: Icon, exact }) => {
           const active =
             href === "/app/more"

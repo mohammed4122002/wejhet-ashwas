@@ -7,6 +7,8 @@
  * القصوى (شكوك للأستاذ، تجهيز offline) ← الإثراء (محاكاة).
  */
 
+import { QUESTION_BANK_ENABLED } from "./feature-flags";
+
 export interface NextStepInput {
   hasSchedule: boolean;
   overdue: number;
@@ -56,7 +58,11 @@ export function nextStep(i: NextStepInput): NextStep {
       cta: "ابدأ الآن",
     };
   }
-  if (i.weakestStartedUnit && i.weakestStartedUnit.ratio < 0.6) {
+  if (
+    QUESTION_BANK_ENABLED &&
+    i.weakestStartedUnit &&
+    i.weakestStartedUnit.ratio < 0.6
+  ) {
     return {
       id: "strengthen-weakest",
       title: `قوِّ نقطتك الأضعف: ${i.weakestStartedUnit.unitName}`,
@@ -75,7 +81,7 @@ export function nextStep(i: NextStepInput): NextStep {
       cta: "افتح الشكوك",
     };
   }
-  if (!i.hasDownloadedQuestions) {
+  if (QUESTION_BANK_ENABLED && !i.hasDownloadedQuestions) {
     return {
       id: "download-bank",
       title: "جهّز تمرينك بدون نت",
@@ -131,12 +137,16 @@ export function buildChecklist(c: ChecklistInput): ChecklistItem[] {
       href: "/app",
       done: c.pomodoroCount > 0,
     },
-    {
-      id: "download",
-      label: "حمّل مادة للتمرين بدون نت",
-      href: "/app/bank",
-      done: c.hasDownloadedQuestions,
-    },
+    ...(QUESTION_BANK_ENABLED
+      ? [
+          {
+            id: "download",
+            label: "حمّل مادة للتمرين بدون نت",
+            href: "/app/bank",
+            done: c.hasDownloadedQuestions,
+          },
+        ]
+      : []),
   ];
 }
 

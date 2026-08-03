@@ -32,6 +32,7 @@ import {
   checklistComplete,
   type NextStepInput,
 } from "./src/lib/domain/next-step";
+import { QUESTION_BANK_ENABLED } from "./src/lib/domain/feature-flags";
 import type { UnitProgress } from "./src/lib/domain/heatmap";
 
 let passed = 0;
@@ -235,15 +236,24 @@ const base: NextStepInput = {
 ok("no schedule → build-schedule", nextStep({ ...base, hasSchedule: false }).id === "build-schedule");
 ok("overdue beats today", nextStep({ ...base, overdue: 2, todayTodo: 3 }).id === "clear-overdue");
 ok("today todo → focus-today", nextStep({ ...base, todayTodo: 3 }).id === "focus-today");
-ok("weak unit (<0.6) → strengthen", nextStep({ ...base, weakestStartedUnit: { unitName: "و", ratio: 0.3 } }).id === "strengthen-weakest");
+// اقتراحات بنك الأسئلة تُتخطّى كلياً وهو مخفي خلف مفتاح التفعيل
+ok(
+  "weak unit (<0.6) → strengthen (عند تفعيل البنك فقط)",
+  nextStep({ ...base, weakestStartedUnit: { unitName: "و", ratio: 0.3 } }).id ===
+    (QUESTION_BANK_ENABLED ? "strengthen-weakest" : "day-done")
+);
 ok("strong unit (≥0.6) skipped", nextStep({ ...base, weakestStartedUnit: { unitName: "و", ratio: 0.8 } }).id === "day-done");
 ok("3+ doubts → take-doubts", nextStep({ ...base, unresolvedDoubts: 3 }).id === "take-doubts");
-ok("no downloads → download-bank", nextStep({ ...base, hasDownloadedQuestions: false }).id === "download-bank");
+ok(
+  "no downloads → download-bank (عند تفعيل البنك فقط)",
+  nextStep({ ...base, hasDownloadedQuestions: false }).id ===
+    (QUESTION_BANK_ENABLED ? "download-bank" : "day-done")
+);
 ok("all clear → day-done", nextStep(base).id === "day-done");
 
 console.log("getting-started checklist:");
 const cl = buildChecklist({ hasSchedule: true, completedTasks: 0, pomodoroCount: 0, hasDownloadedQuestions: false });
-ok("4 checklist items", cl.length === 4);
+ok("checklist items (خطوة التحميل تُحذف وهو مخفي)", cl.length === (QUESTION_BANK_ENABLED ? 4 : 3));
 ok("schedule marked done", cl.find((i) => i.id === "schedule")?.done === true);
 ok("incomplete when steps remain", checklistComplete(cl) === false);
 ok("complete when all done", checklistComplete(buildChecklist({ hasSchedule: true, completedTasks: 1, pomodoroCount: 1, hasDownloadedQuestions: true })) === true);

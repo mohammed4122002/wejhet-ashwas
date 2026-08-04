@@ -193,6 +193,7 @@ export interface Database {
           id: string;
           task_id: string | null;
           user_id: string | null;
+          session_type: "focus" | "break";
           duration_minutes: number;
           started_at: string;
           ended_at: string | null;
@@ -201,6 +202,7 @@ export interface Database {
           id?: string;
           task_id?: string | null;
           user_id?: string | null;
+          session_type?: "focus" | "break";
           duration_minutes: number;
           started_at: string;
           ended_at?: string | null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, CalendarPlus, Sparkles } from "lucide-react";
+import { Plus, CalendarPlus, Sparkles, Timer } from "lucide-react";
 import Link from "next/link";
 import { useTasks } from "@/hooks/use-tasks";
 import { useSchedule } from "@/hooks/use-schedule";
@@ -12,6 +12,7 @@ import { GuidePanel } from "@/components/app/guide-panel";
 import { MotivationalQuote } from "@/components/app/motivational-quote";
 import { TaskCard } from "@/components/app/task-card";
 import { TaskDoneToast, useTaskDoneToast } from "@/components/app/task-done-toast";
+import { GeneralPomodoroDialog } from "@/components/app/general-pomodoro-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export default function TodayPage() {
   const { slots } = useSchedule();
   const { subjects } = useCurriculum();
   const { message: toastMsg, triggerToast } = useTaskDoneToast();
+  const [focusOpen, setFocusOpen] = useState(false);
 
   const subjectName = useMemo(() => {
     const m = new Map(subjects.map((s) => [s.id, s.name_ar]));
@@ -111,7 +113,12 @@ export default function TodayPage() {
 
       {/* مهام اليوم */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-h2 text-text-primary">مهام اليوم</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-h2 text-text-primary">مهام اليوم</h2>
+          <Button variant="secondary" size="sm" onClick={() => setFocusOpen(true)}>
+            <Timer aria-hidden /> جلسة تركيز عامة
+          </Button>
+        </div>
 
         <AddTaskInline
           onAdd={(title) => addTask({ title, task_date: todayISO() })}
@@ -136,6 +143,8 @@ export default function TodayPage() {
           <EmptyToday hasSchedule={slots.length > 0} />
         )}
       </section>
+
+      <GeneralPomodoroDialog open={focusOpen} onOpenChange={setFocusOpen} />
     </div>
   );
 }

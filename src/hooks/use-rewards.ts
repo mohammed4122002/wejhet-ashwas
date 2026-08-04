@@ -75,11 +75,25 @@ export function useRewards(): { progress: RewardProgress; badges: Badge[] } {
     null
   );
 
+  // جلسات التركيز المكتملة عبر كل الوقت (مربوطة بمهمة أو عامة) — لشارة "بومودورو ماستر"
+  const pomodoroSessions = useLiveQuery(
+    async () => {
+      const rows = await getDB()
+        .pomodoro_sessions.where("user_id")
+        .equals(userId)
+        .toArray();
+      return rows.filter((r) => r.session_type === "focus").length;
+    },
+    [userId],
+    0
+  );
+
   const badges = evaluateBadges({
     completedTasks,
     overallRatio: progress.overallRatio,
     streakDays,
     bestMockPercent: bestMockPercent ?? null,
+    pomodoroSessions: pomodoroSessions ?? 0,
   });
 
   return { progress, badges };

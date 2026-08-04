@@ -50,7 +50,9 @@ export function useDailyStats(): DailyStats {
         const dates = doneAll.map((t) =>
           (t.completed_at ?? t.task_date).slice(0, 10)
         );
-        const focusMinutes = pomos
+        // الاستراحات تُسجَّل بنفس الجدول الآن — لازم نستثنيها من دقائق/عدد التركيز
+        const focusPomos = pomos.filter((p) => p.session_type === "focus");
+        const focusMinutes = focusPomos
           .filter((p) => p.started_at.slice(0, 10) === today)
           .reduce((s, p) => s + p.duration_minutes, 0);
 
@@ -60,7 +62,7 @@ export function useDailyStats(): DailyStats {
           streak: currentStreak(dates, today),
           focusMinutes,
           completedTasks: doneAll.length,
-          pomodoroCount: pomos.length,
+          pomodoroCount: focusPomos.length,
         } satisfies DailyStats;
       },
       [userId, today],

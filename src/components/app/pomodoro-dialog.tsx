@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Play, Pause, RotateCcw, HelpCircle, Check, CircleCheckBig } from "lucide-react";
 import {
   Dialog,
@@ -12,15 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { nowISO } from "@/lib/db/ids";
+import { usePomodoroTimer } from "@/hooks/use-pomodoro-timer";
 import { usePomodoroLog } from "@/hooks/use-pomodoro-log";
 import { useDoubts } from "@/hooks/use-doubts";
 import type { LocalTask } from "@/lib/db/dexie";
 
-const DEFAULT_FOCUS = 25;
-const DEFAULT_BREAK = 5;
-
-function fmt(totalSeconds: number): string {
+export function fmt(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -41,7 +38,7 @@ const ORDINALS = [
 ];
 
 /** "الجلسة الثالثة" لصغار الأرقام، و"الجلسة رقم N" لما بعدها. */
-function sessionLabel(n: number): string {
+export function sessionLabel(n: number): string {
   return ORDINALS[n] ? `الجلسة ${ORDINALS[n]}` : `الجلسة رقم ${n}`;
 }
 
@@ -62,94 +59,25 @@ export function PomodoroDialog({
   const completedSessions = sessions.length;
   const isDone = task.status === "done";
 
-  const [focusMin, setFocusMin] = useState(DEFAULT_FOCUS);
-  const [breakMin, setBreakMin] = useState(DEFAULT_BREAK);
-  const [phase, setPhase] = useState<"focus" | "break">("focus");
-  const [running, setRunning] = useState(false);
-  const [remaining, setRemaining] = useState(DEFAULT_FOCUS * 60);
-
-  const endRef = useRef<number | null>(null); // طابع نهاية الطور (ms)
-  const startedAtRef = useRef<string | null>(null); // بداية طور التركيز (للتسجيل)
-
-  // ضبط المتبقّي عند تغيير المدد وهو متوقّف
-  useEffect(() => {
-    if (!running) {
-      setRemaining((phase === "focus" ? focusMin : breakMin) * 60);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMin, breakMin, phase]);
-
-  // مؤقّت يعتمد الزمن الحقيقي (يصمد أمام خمول التبويب)
-  useEffect(() => {
-    if (!running) return;
-    const tick = () => {
-      if (endRef.current == null) return;
-      const rem = Math.max(0, Math.round((endRef.current - Date.now()) / 1000));
-      setRemaining(rem);
-      if (rem <= 0) handlePhaseEnd();
-    };
-    const id = window.setInterval(tick, 250);
-    return () => window.clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running]);
-
-  function start() {
-    if (running) return;
-    if (phase === "focus" && !startedAtRef.current) {
-      startedAtRef.current = nowISO();
-    }
-    endRef.current = Date.now() + remaining * 1000;
-    setRunning(true);
-  }
-
-  function pause() {
-    setRunning(false);
-    endRef.current = null;
-  }
-
-  function reset() {
-    setRunning(false);
-    endRef.current = null;
-    startedAtRef.current = null;
-    setRemaining((phase === "focus" ? focusMin : breakMin) * 60);
-  }
-
-  async function handlePhaseEnd() {
-    if (phase === "focus") {
-      // سجّل جلسة التركيز المكتملة كوقت فعلي
-      await logSession(
-        task.id,
-        focusMin,
-        startedAtRef.current ?? nowISO(),
-        nowISO()
-      );
-      startedAtRef.current = null;
-      // انتقل للاستراحة تلقائياً
-      setPhase("break");
-      setRemaining(breakMin * 60);
-      endRef.current = Date.now() + breakMin * 60 * 1000;
-      setRunning(true);
-    } else {
-      // انتهت الاستراحة — توقّف وارجع لطور التركيز
-      setRunning(false);
-      endRef.current = null;
-      setPhase("focus");
-      setRemaining(focusMin * 60);
-    }
-  }
+  const {
+    focusMin,
+    setFocusMin,
+    breakMin,
+    setBreakMin,
+    phase,
+    running,
+    remaining,
+    start,
+    pause,
+    reset,
+    finishEarly,
+  } = usePomodoroTimer((log) =>
+    logSession(task.id, log.type, log.durationMinutes, log.startedAt, log.endedAt)
+  );
 
   /** إنهاء المهمة: يسجّل الوقت الجزئي إن وُجد، يعلّم المهمة تمّت، ويغلق. */
   async function finishTask() {
-    setRunning(false);
-    endRef.current = null;
-    // لو كنا بجلسة تركيز جارية، سجّل الدقائق المنقضية حتى الآن
-    if (phase === "focus" && startedAtRef.current) {
-      const elapsedMin = Math.round((focusMin * 60 - remaining) / 60);
-      if (elapsedMin >= 1) {
-        await logSession(task.id, elapsedMin, startedAtRef.current, nowISO());
-      }
-      startedAtRef.current = null;
-    }
+    await finishEarly();
     onComplete?.();
     onOpenChange(false);
   }
@@ -296,14 +224,29 @@ export function PomodoroDialog({
         )}
 
         {/* صندوق الشكوك الملاصق — أقل احتكاك ممكن */}
-        <DoubtInline task={task} />
+        <DoubtInline
+          taskId={task.id}
+          subjectId={task.subject_id}
+          lessonId={task.lesson_id}
+        />
       </DialogContent>
     </Dialog>
   );
 }
 
-/** حقل شك سريع (سطر واحد، بدون مودال إضافي) — يحفظ ويرجع فوراً. */
-function DoubtInline({ task }: { task: LocalTask }) {
+/**
+ * حقل شك سريع (سطر واحد، بدون مودال إضافي) — يحفظ ويرجع فوراً.
+ * task/subject/lesson اختيارية حتى تُستخدم من جلسة عامة بلا مهمة أيضاً.
+ */
+export function DoubtInline({
+  taskId = null,
+  subjectId = null,
+  lessonId = null,
+}: {
+  taskId?: string | null;
+  subjectId?: string | null;
+  lessonId?: string | null;
+}) {
   const { addDoubt } = useDoubts();
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState("");
@@ -314,9 +257,9 @@ function DoubtInline({ task }: { task: LocalTask }) {
     if (!q) return;
     await addDoubt({
       question_text: q,
-      task_id: task.id,
-      subject_id: task.subject_id,
-      lesson_id: task.lesson_id,
+      task_id: taskId,
+      subject_id: subjectId,
+      lesson_id: lessonId,
     });
     setText("");
     setSaved(true);

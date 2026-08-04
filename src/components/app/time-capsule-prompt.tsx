@@ -81,8 +81,8 @@ export function TimeCapsulePrompt() {
           </div>
           <DialogTitle>رسالة لنفسك المستقبلية</DialogTitle>
           <DialogDescription>
-            اكتب كلمتين لطالب/طالبة يوم إعلان النتائج — تطلّع عليها بعد ما
-            تُعلن. مقفولة تماماً لحد ما يجي وقتها.
+            اكتب كلمتين لنفسك تقرأهم يوم إعلان النتائج — رسالة منك لك.
+            مقفولة تماماً لحد ما يجي وقتها.
           </DialogDescription>
         </DialogHeader>
 

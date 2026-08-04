@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">وجهة أشوس</string>
+    <string name="title_activity_main">وجهة أشوس</string>
+    <string name="package_name">com.wejhetashwas.app</string>
+    <string name="custom_url_scheme">com.wejhetashwas.app</string>
+</resources>

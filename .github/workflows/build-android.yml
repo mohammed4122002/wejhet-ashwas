@@ -1,0 +1,64 @@
+name: Build Android APK
+
+# يبني نسخة أندرويد من نفس تطبيق الويب (Capacitor "remote mode" — الـ WebView
+# يفتح الموقع الحي مباشرة) وينشرها كملف تنزيل ثابت الرابط على GitHub Releases،
+# مجاناً بالكامل (بدون Google Play، بدون حساب مدفوع).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/build-android.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      # نُزامن إعدادات Capacitor مع مشروع أندرويد (لا يحتاج بناء Next.js —
+      # وضع "remote" يفتح الموقع الحي مباشرة، لا نسخة محلية مجمَّعة)
+      - run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/wejhet-ashwas.apk
+
+      # نحذف أي إصدار سابق بنفس الوسم ونعيد إنشاءه — رابط تنزيل ثابت دائماً
+      # (releases/latest/download/wejhet-ashwas.apk) يتحدّث بكل بناء جديد.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest dist/wejhet-ashwas.apk \
+            --repo "${{ github.repository }}" \
+            --title "تطبيق وجهة أشوس لأندرويد" \
+            --notes "آخر نسخة APK — تُبنى تلقائياً من نفس كود الموقع. نزّل، فعّل «السماح بالتثبيت من مصادر غير معروفة»، وثبّت." \
+            --latest

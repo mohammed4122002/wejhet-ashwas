@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { DownloadAndroidLink } from "@/components/app/download-android-link";
 
 /** تخطيط صفحات المصادقة: بطاقة موسّطة على خلفية غامقة مع الشعار. */
 export default function AuthLayout({
@@ -23,9 +24,12 @@ export default function AuthLayout({
 
       <div className="w-full max-w-md">{children}</div>
 
-      <p className="text-secondary text-text-muted">
-        رحلتك نحو هدفك تبدأ بخطوة — وأنت صاحب القرار.
-      </p>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-secondary text-text-muted">
+          رحلتك نحو هدفك تبدأ بخطوة — وأنت صاحب القرار.
+        </p>
+        <DownloadAndroidLink />
+      </div>
     </main>
   );
 }

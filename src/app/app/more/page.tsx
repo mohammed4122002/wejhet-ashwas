@@ -11,7 +11,10 @@ import {
   Download,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { ANDROID_APK_URL } from "@/components/app/download-android-link";
+import {
+  ANDROID_APK_URL,
+  InstallHelpButton,
+} from "@/components/app/download-android-link";
 
 const ITEMS = [
   {
@@ -84,22 +87,24 @@ export default function MorePage() {
           </Link>
         ))}
 
-        <a href={ANDROID_APK_URL} download>
-          <Card className="flex items-center justify-between gap-3 p-4 transition-colors hover:border-brand-400">
-            <span className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-bg-raised">
-                <Download className="size-5 text-brand-400" aria-hidden />
-              </span>
-              <span className="flex flex-col">
-                <span className="text-h3 text-text-primary">تطبيق أندرويد</span>
-                <span className="text-secondary text-text-muted">
-                  نزّل نسخة APK مباشرة — مجاني، بدون متجر
-                </span>
+        <Card className="flex items-center justify-between gap-3 p-4">
+          <a
+            href={ANDROID_APK_URL}
+            download
+            className="flex flex-1 items-center gap-3 transition-colors hover:text-brand-400"
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-bg-raised">
+              <Download className="size-5 text-brand-400" aria-hidden />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-h3 text-text-primary">تطبيق أندرويد</span>
+              <span className="text-secondary text-text-muted">
+                نزّل نسخة APK مباشرة — مجاني، بدون متجر
               </span>
             </span>
-            <ChevronLeft className="size-5 shrink-0 text-text-muted" aria-hidden />
-          </Card>
-        </a>
+          </a>
+          <InstallHelpButton />
+        </Card>
       </div>
     </div>
   );

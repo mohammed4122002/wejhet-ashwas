@@ -1,5 +1,8 @@
 import Image from "next/image";
-import { DownloadAndroidLink } from "@/components/app/download-android-link";
+import {
+  DownloadAndroidLink,
+  InstallHelpButton,
+} from "@/components/app/download-android-link";
 
 /** تخطيط صفحات المصادقة: بطاقة موسّطة على خلفية غامقة مع الشعار. */
 export default function AuthLayout({
@@ -28,7 +31,10 @@ export default function AuthLayout({
         <p className="text-secondary text-text-muted">
           رحلتك نحو هدفك تبدأ بخطوة — وأنت صاحب القرار.
         </p>
-        <DownloadAndroidLink />
+        <div className="flex items-center gap-1">
+          <DownloadAndroidLink />
+          <InstallHelpButton />
+        </div>
       </div>
     </main>
   );

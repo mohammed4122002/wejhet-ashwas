@@ -10,6 +10,7 @@ import {
   BarChart3,
   Sparkles,
   Trophy,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QUESTION_BANK_ENABLED } from "@/lib/domain/feature-flags";
@@ -22,9 +23,23 @@ const ALL_LINKS = [
   { href: "/app/rewards", label: "إنجازي", icon: Sparkles },
   { href: "/app/compete", label: "التنافسي", icon: Trophy },
   { href: "/app/doubts", label: "الشكوك", icon: HelpCircle },
+  { href: "/app/more", label: "المزيد", icon: LayoutGrid },
 ];
 
 const LINKS = ALL_LINKS.filter((l) => !l.requiresBank || QUESTION_BANK_ENABLED);
+
+/**
+ * صفحات مطويّة داخل "المزيد" وما إلها رابط علوي خاص فيها (خلافاً لرحلتي/
+ * إنجازي/التنافسي/الشكوك اللي عندها روابط مستقلة أصلاً) — يبقى تبويب
+ * "المزيد" مفعّلاً وأنت داخل أي وحدة منها.
+ */
+const MORE_ONLY_PATHS = [
+  "/app/more",
+  "/app/settings",
+  "/app/challenge",
+  "/app/admin",
+  "/app/time-capsule",
+];
 
 /** شريط تنقّل أقسام حلقة الاستخدام اليومي. */
 export function AppNav() {
@@ -34,7 +49,12 @@ export function AppNav() {
     // على الموبايل يحلّ محلّه شريط التبويبات السفلي (MobileTabBar)
     <nav className="hidden gap-2 overflow-x-auto border-b border-subtle pb-3 sm:flex">
       {LINKS.map(({ href, label, icon: Icon, exact }) => {
-        const active = exact ? pathname === href : pathname.startsWith(href);
+        const active =
+          href === "/app/more"
+            ? MORE_ONLY_PATHS.some((p) => pathname.startsWith(p))
+            : exact
+              ? pathname === href
+              : pathname.startsWith(href);
         return (
           <Link
             key={href}

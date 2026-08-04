@@ -1,10 +1,10 @@
-"use client";
-
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Plus, FileText, ChevronLeft, Sparkles, Mail } from "lucide-react";
+import { requireAdmin } from "@/lib/supabase/require-admin";
+import { QUESTION_BANK_ENABLED } from "@/lib/domain/feature-flags";
 
-const ADMIN_OPTIONS = [
+const QUESTION_BANK_OPTIONS = [
   {
     href: "/app/admin/extract",
     label: "استخراج وتحسين الأسئلة",
@@ -29,6 +29,11 @@ const ADMIN_OPTIONS = [
     description: "رفع ملفات PDF, Word, Excel, Markdown وروابط Google Drive",
     icon: FileText,
   },
+];
+
+const ADMIN_OPTIONS = [
+  // أدوات بنك الأسئلة معطّلة مع الميزة نفسها — تعود تلقائياً بتفعيل نفس المفتاح
+  ...(QUESTION_BANK_ENABLED ? QUESTION_BANK_OPTIONS : []),
   {
     href: "/app/admin/time-capsule",
     label: "كبسولة الزمن",
@@ -37,7 +42,9 @@ const ADMIN_OPTIONS = [
   },
 ];
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  await requireAdmin();
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">

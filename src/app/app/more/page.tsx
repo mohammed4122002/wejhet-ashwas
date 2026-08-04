@@ -15,6 +15,8 @@ import {
   ANDROID_APK_URL,
   InstallHelpButton,
 } from "@/components/app/download-android-link";
+import { createClient } from "@/lib/supabase/server";
+import { isAdminEmail } from "@/lib/supabase/admin";
 
 const ITEMS = [
   {
@@ -53,15 +55,24 @@ const ITEMS = [
     desc: "ملفك الشخصي، قالب المكافأة، التذكيرات",
     icon: Settings,
   },
-  {
-    href: "/app/admin",
-    label: "إدارة الأسئلة",
-    desc: "إضافة وإدارة بنك الأسئلة (للمشرفين)",
-    icon: ShieldCheck,
-  },
 ];
 
-export default function MorePage() {
+const ADMIN_ITEM = {
+  href: "/app/admin",
+  label: "لوحة الإدارة",
+  desc: "أدوات المشرفين",
+  icon: ShieldCheck,
+};
+
+export default async function MorePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isAdmin = !!user?.email && isAdminEmail(user.email);
+
+  const items = isAdmin ? [...ITEMS, ADMIN_ITEM] : ITEMS;
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -70,7 +81,7 @@ export default function MorePage() {
       </header>
 
       <div className="flex flex-col gap-3">
-        {ITEMS.map(({ href, label, desc, icon: Icon }) => (
+        {items.map(({ href, label, desc, icon: Icon }) => (
           <Link key={href} href={href}>
             <Card className="flex items-center justify-between gap-3 p-4 transition-colors hover:border-brand-400">
               <span className="flex items-center gap-3">

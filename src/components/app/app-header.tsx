@@ -16,7 +16,8 @@ export function AppHeader() {
         <div className="flex items-center gap-3">
           <SyncStatus />
           <HeaderAvatar />
-          <form action={logoutAction}>
+          {/* الموبايل: الخروج صار داخل قائمة صورة المستخدم، ما تحتاج زر منفصل هون */}
+          <form action={logoutAction} className="hidden sm:block">
             <button
               type="submit"
               className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-secondary text-text-secondary transition-colors hover:bg-bg-surface hover:text-text-primary"

@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy, Users, WifiOff, Plus, LogIn, Crown, Copy, Check } from "lucide-react";
+import { Trophy, Users, WifiOff, Plus, LogIn, Crown, Copy, Check, Flame } from "lucide-react";
 import { useLeaderboard, useChallenges } from "@/hooks/use-competitive";
-import { relativePercent } from "@/lib/domain/competitive";
+import {
+  relativePercent,
+  flameLevel,
+  CHALLENGE_GOAL_TYPES,
+  type ChallengeGoalType,
+} from "@/lib/domain/competitive";
+import { QUESTION_BANK_ENABLED } from "@/lib/domain/feature-flags";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +17,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import type { Database } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
+
+const AVAILABLE_GOAL_TYPES = CHALLENGE_GOAL_TYPES.filter(
+  (g) => !g.requiresBank || QUESTION_BANK_ENABLED
+);
 
 type Participant = Database["public"]["Tables"]["challenge_participants"]["Row"];
 
@@ -167,7 +177,8 @@ function LeaderboardTab() {
 function ChallengesTab() {
   const { challenges, status, createChallenge, joinByCode } = useChallenges();
   const [name, setName] = useState("");
-  const [goal, setGoal] = useState("");
+  const [goalType, setGoalType] = useState<ChallengeGoalType>("tasks");
+  const [note, setNote] = useState("");
   const [alias, setAlias] = useState("");
   const [code, setCode] = useState("");
   const [joinAlias, setJoinAlias] = useState("");
@@ -190,15 +201,38 @@ function ChallengesTab() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (name.trim() && alias.trim()) {
-                  void createChallenge(name.trim(), goal.trim(), alias.trim());
+                  void createChallenge(name.trim(), goalType, note.trim(), alias.trim());
                   setName("");
-                  setGoal("");
+                  setNote("");
                 }
               }}
               className="flex flex-col gap-2"
             >
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم التحدي" />
-              <Input value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="الهدف (مثال: مين يخلّص وحدة التفاضل أول)" />
+
+              <Label className="mt-1">شو بدكم تقيسوا؟</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {AVAILABLE_GOAL_TYPES.map((g) => (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setGoalType(g.value)}
+                    className={cn(
+                      "rounded-pill border px-3 py-1.5 text-secondary transition-colors",
+                      goalType === g.value
+                        ? "border-brand-500 bg-bg-raised text-text-primary"
+                        : "border-strong bg-bg-surface text-text-secondary hover:border-brand-400"
+                    )}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-secondary text-text-muted">
+                يُحسب تلقائياً من إنجازك الحقيقي — بلا إدخال يدوي.
+              </p>
+
+              <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ملاحظة اختيارية (مثال: قبل امتحان الوحدة)" />
               <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="اسمك المستعار بالتحدي" />
               <Button type="submit" disabled={!name.trim() || !alias.trim()}>
                 أنشئ
@@ -253,13 +287,19 @@ function ChallengeCard({
 }: {
   challenge: Database["public"]["Tables"]["challenges"]["Row"];
 }) {
-  const { loadParticipants, setMyProgress } = useChallenges();
+  const { loadParticipants, syncMyProgress } = useChallenges();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [copied, setCopied] = useState(false);
-  const [progress, setProgress] = useState("");
+
+  const goalType = (challenge.goal_type as ChallengeGoalType) ?? "tasks";
+  const goalMeta = CHALLENGE_GOAL_TYPES.find((g) => g.value === goalType);
+  const isFlame = goalType === "streak_days";
 
   useEffect(() => {
-    void loadParticipants(challenge.id).then(setParticipants);
+    // نحسب تقدّمي الحقيقي تلقائياً من بياناتي المحلية عند فتح التحدي، ثم نعرض الكل
+    void syncMyProgress(challenge).finally(() => {
+      void loadParticipants(challenge.id).then(setParticipants);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge.id]);
 
@@ -283,52 +323,49 @@ function ChallengeCard({
             كود: {challenge.invite_code}
           </button>
         </div>
-        {challenge.goal && (
-          <p className="text-secondary text-text-muted">{challenge.goal}</p>
-        )}
+        <p className="text-secondary text-text-muted">
+          {goalMeta?.label ?? "مهام مُنجزة"}
+          {challenge.goal ? ` · ${challenge.goal}` : ""}
+        </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {/* تقدّم نسبي لطيف */}
+        {/* تقدّم محسوب تلقائياً — بلا إدخال يدوي */}
         {participants.map((p) => (
           <div key={p.user_id} className="flex flex-col gap-1">
             <div className="flex items-center justify-between text-secondary">
               <span className="text-text-secondary">{p.display_alias ?? "طالب"}</span>
-              <span className="tabular-nums text-text-muted">{p.progress}</span>
+              <span className="inline-flex items-center gap-1 tabular-nums text-text-muted">
+                {isFlame && (
+                  <Flame
+                    className={cn(
+                      "size-3.5",
+                      flameLevel(p.progress) === 0
+                        ? "text-text-muted"
+                        : flameLevel(p.progress) <= 2
+                          ? "text-accent-gold"
+                          : "text-status-overdue"
+                    )}
+                    aria-hidden
+                  />
+                )}
+                {p.progress} {goalMeta?.unit ?? ""}
+              </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-pill bg-bg-raised">
               <div
-                className="h-full rounded-pill bg-brand-500 transition-all"
+                className={cn(
+                  "h-full rounded-pill transition-all",
+                  isFlame ? "bg-accent-gold" : "bg-brand-500"
+                )}
                 style={{ width: `${relativePercent(p.progress, maxProgress)}%` }}
               />
             </div>
           </div>
         ))}
 
-        {/* تحديث تقدّمي */}
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const n = Number(progress);
-            if (Number.isFinite(n)) {
-              await setMyProgress(challenge.id, Math.max(0, n));
-              setParticipants(await loadParticipants(challenge.id));
-              setProgress("");
-            }
-          }}
-          className="flex items-center gap-2"
-        >
-          <Input
-            type="number"
-            min={0}
-            value={progress}
-            onChange={(e) => setProgress(e.target.value)}
-            placeholder="حدّث تقدّمي"
-            className="w-40"
-          />
-          <Button type="submit" size="sm" variant="secondary">
-            حفظ
-          </Button>
-        </form>
+        <p className="text-secondary text-text-muted">
+          يتحدّث تقدّمك تلقائياً من إنجازك الحقيقي كل ما تفتح التحدي.
+        </p>
       </CardContent>
     </Card>
   );

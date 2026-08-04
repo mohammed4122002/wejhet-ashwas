@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getDB } from "@/lib/db/dexie";
 import { useUserId } from "@/components/app/app-data-provider";
-import { commitmentScore } from "@/lib/domain/competitive";
-import { longestStreak } from "@/lib/domain/rewards";
+import { commitmentScore, type ChallengeGoalType } from "@/lib/domain/competitive";
+import { longestStreak, currentStreak } from "@/lib/domain/rewards";
+import { todayISO } from "@/lib/db/ids";
 import type { Database } from "@/lib/supabase/database.types";
 
 type LeaderRow = Database["public"]["Tables"]["leaderboard_opt_in"]["Row"];
@@ -23,6 +24,74 @@ async function computeMyMetric(userId: string) {
   const dates = done.map((t) => (t.completed_at ?? t.task_date).slice(0, 10));
   const streak = longestStreak(dates);
   return { score: commitmentScore(done.length, streak), streak };
+}
+
+/**
+ * تقدّم حقيقي بتحدٍّ محسوب تلقائياً من البيانات المحلية — بدون أي إدخال يدوي
+ * قابل للغش. `sinceDate` هو تاريخ بداية التحدي (أو تاريخ إنشائه لو ما حُدِّد).
+ */
+async function computeChallengeMetric(
+  userId: string,
+  goalType: ChallengeGoalType,
+  sinceDate: string
+): Promise<number> {
+  const db = getDB();
+  switch (goalType) {
+    case "tasks": {
+      const done = await db.tasks
+        .where("user_id")
+        .equals(userId)
+        .and((t) => t.status === "done" && (t.completed_at ?? t.task_date).slice(0, 10) >= sinceDate)
+        .toArray();
+      return done.length;
+    }
+    case "focus_minutes": {
+      const sessions = await db.pomodoro_sessions
+        .where("user_id")
+        .equals(userId)
+        .and((s) => s.session_type === "focus" && s.started_at.slice(0, 10) >= sinceDate)
+        .toArray();
+      return sessions.reduce((sum, s) => sum + s.duration_minutes, 0);
+    }
+    case "streak_days": {
+      const done = await db.tasks
+        .where("user_id")
+        .equals(userId)
+        .and((t) => t.status === "done")
+        .toArray();
+      const dates = done.map((t) => (t.completed_at ?? t.task_date).slice(0, 10));
+      return currentStreak(dates, todayISO());
+    }
+    case "lessons_mastered": {
+      const [tasks, attempts, questions] = await Promise.all([
+        db.tasks.where("user_id").equals(userId).toArray(),
+        db.question_attempts.where("user_id").equals(userId).toArray(),
+        db.question_bank_items.toArray(),
+      ]);
+      const questionLesson = new Map(questions.map((q) => [q.id, q.lesson_id]));
+      const mastered = new Set<string>();
+      for (const t of tasks) {
+        if (t.status === "done" && t.lesson_id && (t.completed_at ?? t.task_date).slice(0, 10) >= sinceDate) {
+          mastered.add(t.lesson_id);
+        }
+      }
+      for (const a of attempts) {
+        if (a.is_correct && a.question_id && (a.answered_at ?? "").slice(0, 10) >= sinceDate) {
+          const lessonId = questionLesson.get(a.question_id);
+          if (lessonId) mastered.add(lessonId);
+        }
+      }
+      return mastered.size;
+    }
+    case "questions_solved": {
+      const attempts = await db.question_attempts
+        .where("user_id")
+        .equals(userId)
+        .and((a) => a.is_correct && (a.answered_at ?? "").slice(0, 10) >= sinceDate)
+        .toArray();
+      return attempts.length;
+    }
+  }
 }
 
 // ============ لوحة الصدارة ============
@@ -121,11 +190,16 @@ export function useChallenges() {
     void refresh();
   }, [refresh]);
 
-  async function createChallenge(name: string, goal: string, alias: string) {
+  async function createChallenge(
+    name: string,
+    goalType: ChallengeGoalType,
+    note: string,
+    alias: string
+  ) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("challenges")
-      .insert({ creator_id: userId, name, goal })
+      .insert({ creator_id: userId, name, goal: note || null, goal_type: goalType })
       .select()
       .single();
     if (error) throw error;
@@ -161,13 +235,24 @@ export function useChallenges() {
     return data ?? [];
   }
 
-  async function setMyProgress(challengeId: string, progress: number) {
+  /**
+   * يحسب تقدّمي الحقيقي بالتحدي من بياناتي المحلية ويرفعه — بدل الإدخال
+   * اليدوي القابل للغش. يُستدعى تلقائياً عند فتح التحدي.
+   */
+  async function syncMyProgress(challenge: ChallengeRow): Promise<number> {
+    const sinceDate = (challenge.start_date ?? challenge.created_at ?? "").slice(0, 10) || "2000-01-01";
+    const progress = await computeChallengeMetric(
+      userId,
+      challenge.goal_type as ChallengeGoalType,
+      sinceDate
+    );
     const supabase = createClient();
     await supabase
       .from("challenge_participants")
       .update({ progress, updated_at: new Date().toISOString() })
-      .eq("challenge_id", challengeId)
+      .eq("challenge_id", challenge.id)
       .eq("user_id", userId);
+    return progress;
   }
 
   return {
@@ -177,6 +262,6 @@ export function useChallenges() {
     createChallenge,
     joinByCode,
     loadParticipants,
-    setMyProgress,
+    syncMyProgress,
   };
 }

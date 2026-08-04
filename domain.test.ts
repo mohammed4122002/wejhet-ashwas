@@ -34,6 +34,7 @@ import {
 } from "./src/lib/domain/next-step";
 import { QUESTION_BANK_ENABLED } from "./src/lib/domain/feature-flags";
 import type { UnitProgress } from "./src/lib/domain/heatmap";
+import { flameLevel, relativePercent, commitmentScore } from "./src/lib/domain/competitive";
 
 let passed = 0;
 function ok(name: string, cond: boolean) {
@@ -326,5 +327,15 @@ ok("counts chain ending today", currentStreak(["2026-07-10", "2026-07-11", "2026
 ok("today not done yet → yesterday chain holds", currentStreak(["2026-07-10", "2026-07-11"], "2026-07-12") === 2);
 ok("gap breaks current streak", currentStreak(["2026-07-08"], "2026-07-12") === 0);
 ok("empty → 0", currentStreak([], "2026-07-12") === 0);
+
+console.log("competitive (challenges):");
+ok("flame: 0 days → خامدة", flameLevel(0) === 0);
+ok("flame: 1-2 days → مستوى 1", flameLevel(1) === 1 && flameLevel(2) === 1);
+ok("flame: 3-6 days → مستوى 2", flameLevel(3) === 2 && flameLevel(6) === 2);
+ok("flame: 7-13 days → مستوى 3", flameLevel(7) === 3 && flameLevel(13) === 3);
+ok("flame: 14+ days → مستوى 4 (أقصى اشتعال)", flameLevel(14) === 4 && flameLevel(30) === 4);
+ok("relativePercent: نسبة لأعلى تقدّم", relativePercent(50, 100) === 50);
+ok("relativePercent: صفر أقصى تقدّم → صفر (لا قسمة على صفر)", relativePercent(5, 0) === 0);
+ok("commitmentScore: مهام وسلسلة", commitmentScore(3, 2) === 40);
 
 console.log(`\nALL ${passed} ASSERTIONS PASSED ✓`);

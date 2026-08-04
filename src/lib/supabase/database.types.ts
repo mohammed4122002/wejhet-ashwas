@@ -347,6 +347,7 @@ export interface Database {
           end_date: string | null;
           created_at: string | null;
           goal: string | null;
+          goal_type: string;
         };
         Insert: {
           id?: string;
@@ -358,6 +359,7 @@ export interface Database {
           end_date?: string | null;
           created_at?: string | null;
           goal?: string | null;
+          goal_type?: string;
         };
         Update: Partial<Database["public"]["Tables"]["challenges"]["Insert"]>;
         Relationships: [];

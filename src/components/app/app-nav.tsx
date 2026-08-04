@@ -36,7 +36,6 @@ const LINKS = ALL_LINKS.filter((l) => !l.requiresBank || QUESTION_BANK_ENABLED);
 const MORE_ONLY_PATHS = [
   "/app/more",
   "/app/settings",
-  "/app/challenge",
   "/app/admin",
   "/app/time-capsule",
 ];

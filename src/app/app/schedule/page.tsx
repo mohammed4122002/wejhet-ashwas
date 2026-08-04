@@ -220,7 +220,7 @@ function GeneratorMode({
   const { replaceWithGenerated, fixedSlots } = useSchedule();
   const { autoScheduleApply } = useAppUser();
 
-  const [hours, setHours] = useState<number[]>([2, 2, 2, 2, 2, 0, 2]);
+  const [hours, setHours] = useState<number[]>([3, 3, 3, 3, 3, 0, 3]);
   const [draft, setDraft] = useState<GeneratedSlot[] | null>(null);
   const [applied, setApplied] = useState(false);
 
@@ -263,9 +263,13 @@ function GeneratorMode({
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-h3">كم ساعة فاضية عندك كل يوم؟</CardTitle>
+          <CardTitle className="text-h3">كم مادة بدك الجدول يغطّيها كل يوم؟</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <p className="text-secondary text-text-muted">
+            كل رقم = عدد المواد (الحصص) اللي بيحطّها جدولك بهالليوم — كل حصة ساعة
+            تقريباً، ونوزّعها على مواد مختلفة قدر الإمكان بدل ما نكرّر نفس المادة.
+          </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
             {WEEKDAYS_AR.map((d, i) => (
               <div key={i} className="flex flex-col gap-1.5">
@@ -273,7 +277,7 @@ function GeneratorMode({
                 <Input
                   type="number"
                   min={0}
-                  max={12}
+                  max={8}
                   value={hours[i]}
                   onChange={(e) => {
                     const next = [...hours];

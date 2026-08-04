@@ -4,7 +4,6 @@ import {
   Trophy,
   HelpCircle,
   Settings,
-  Zap,
   ChevronLeft,
   ShieldCheck,
   Mail,
@@ -19,12 +18,6 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/supabase/admin";
 
 const ITEMS = [
-  {
-    href: "/app/challenge",
-    label: "التحدي اليومي",
-    desc: "سؤال عشوائي — 30 ثانية فقط!",
-    icon: Zap,
-  },
   {
     href: "/app/time-capsule",
     label: "كبسولة الزمن",

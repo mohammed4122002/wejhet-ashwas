@@ -29,7 +29,6 @@ const MORE_PATHS = [
   "/app/compete",
   "/app/doubts",
   "/app/settings",
-  "/app/challenge",
   "/app/admin",
   "/app/time-capsule",
 ];

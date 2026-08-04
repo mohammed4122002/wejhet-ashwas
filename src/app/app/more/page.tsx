@@ -7,6 +7,7 @@ import {
   Zap,
   ChevronLeft,
   ShieldCheck,
+  Mail,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -16,6 +17,12 @@ const ITEMS = [
     label: "التحدي اليومي",
     desc: "سؤال عشوائي — 30 ثانية فقط!",
     icon: Zap,
+  },
+  {
+    href: "/app/time-capsule",
+    label: "كبسولة الزمن",
+    desc: "رسالتك لنفسك — تُفتح يوم إعلان النتائج",
+    icon: Mail,
   },
   {
     href: "/app/rewards",

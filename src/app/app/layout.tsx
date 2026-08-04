@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app/app-header";
 import { AppDataProvider } from "@/components/app/app-data-provider";
 import { AppNav } from "@/components/app/app-nav";
 import { MobileTabBar } from "@/components/app/mobile-tab-bar";
+import { TimeCapsulePrompt } from "@/components/app/time-capsule-prompt";
 
 /** تخطيط المنطقة المحمية (/app). middleware يضمن وجود جلسة + فرع مختار. */
 export default async function AppLayout({
@@ -38,6 +39,7 @@ export default async function AppLayout({
       }}
     >
       <div className="min-h-screen">
+        <TimeCapsulePrompt />
         <AppHeader />
         <div className="mx-auto max-w-5xl px-4 py-6">
           <AppNav />

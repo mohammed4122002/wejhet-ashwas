@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Plus, FileText, ChevronLeft, Sparkles } from "lucide-react";
+import { Plus, FileText, ChevronLeft, Sparkles, Mail } from "lucide-react";
 
 const ADMIN_OPTIONS = [
   {
@@ -28,6 +28,12 @@ const ADMIN_OPTIONS = [
     label: "إدارة الملفات والمصادر",
     description: "رفع ملفات PDF, Word, Excel, Markdown وروابط Google Drive",
     icon: FileText,
+  },
+  {
+    href: "/app/admin/time-capsule",
+    label: "كبسولة الزمن",
+    description: "حدّد تاريخ فتح رسائل الطلاب لأنفسهم",
+    icon: Mail,
   },
 ];
 

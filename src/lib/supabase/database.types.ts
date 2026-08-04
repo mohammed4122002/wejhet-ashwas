@@ -480,6 +480,68 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["materials"]["Insert"]>;
         Relationships: [];
       };
+      time_capsule_letters: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: "skipped" | "written";
+          message: string | null;
+          created_at: string;
+          written_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          status?: "skipped" | "written";
+          message?: string | null;
+          created_at?: string;
+          written_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["time_capsule_letters"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      time_capsule_config: {
+        Row: {
+          id: number;
+          unlock_at: string;
+          notified_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          unlock_at: string;
+          notified_at?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["time_capsule_config"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["push_subscriptions"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       heatmap_unit_progress: {

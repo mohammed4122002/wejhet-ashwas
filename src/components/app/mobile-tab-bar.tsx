@@ -31,6 +31,7 @@ const MORE_PATHS = [
   "/app/settings",
   "/app/challenge",
   "/app/admin",
+  "/app/time-capsule",
 ];
 
 /**

@@ -33,6 +33,12 @@ export interface FreeTimeInput {
   startHour?: number; // افتراضي 16 (بعد المدرسة)
   /** فترات محجوزة تتجنّبها الجدولة (قابلة للتعديل من الإعدادات دائماً). */
   fixedBlocks?: FixedBlock[];
+  /**
+   * أقصى عدد مواد مختلفة باليوم الواحد (اختياري). يعمل مع الساعات الفاضية
+   * معاً — لا يلغيها: العدد الفعلي لكل يوم هو الأصغر بين هالحد وعدد
+   * الحصص اللي تسمح فيها الساعات الفاضية ذاك اليوم.
+   */
+  subjectsPerDay?: number;
 }
 
 export interface GeneratedSlot {
@@ -122,7 +128,9 @@ function fromMin(m: number): string {
 /**
  * يولّد فترات الجدول الأسبوعي.
  * - يحسب عدد الفترات لكل يوم من الساعات الفاضية.
- * - يوزّع المواد على الأيام بترتيب دوّار (round-robin) حسب حصصها المرجّحة.
+ * - يوزّع المواد على الأيام بترتيب دوّار (round-robin) حسب حصصها المرجّحة،
+ *   بحد أقصى لعدد المواد المختلفة باليوم (subjectsPerDay) لو انضبط — والساعات
+ *   الفاضية تبقى الحاكم الأول: ما بنحط مواد أكثر من الحصص اللي تتّسع فيها.
  * - يتجنّب الالتزامات الثابتة (مدرسة، دروس خصوصية...) — يزحزح الفترة لأقرب
  *   ساعة حرة بعدها، وإن لم يتّسع اليوم يضع ما أمكن فقط (واقعية لا تكديس).
  */
@@ -147,6 +155,7 @@ export function generateWeeklySlots(
   const pools = allocation
     .map((a) => ({ subject: a.subject, left: a.count }))
     .filter((p) => p.left > 0);
+  const subjectById = new Map(subjects.map((s) => [s.id, s]));
 
   /**
    * يختار المادة التالية لهذا اليوم: يفضّل مادة لم تُستخدم اليوم بعد (تنويع)،
@@ -158,6 +167,15 @@ export function generateWeeklySlots(
     const fresh = available.filter((p) => !usedToday.has(p.subject.id));
     const candidates = fresh.length ? fresh : available;
     const best = candidates.reduce((a, b) => (b.left > a.left ? b : a));
+    best.left -= 1;
+    return best.subject;
+  }
+
+  /** بعد ما وصلنا سقف عدد مواد اليوم: نكرّر من ضمن مواد اليوم نفسها فقط. */
+  function pickFromToday(usedToday: Set<string>): SchedulableSubject | null {
+    const todays = pools.filter((p) => usedToday.has(p.subject.id));
+    if (todays.length === 0) return subjectById.get([...usedToday][0]) ?? null;
+    const best = todays.reduce((a, b) => (b.left > a.left ? b : a));
     best.left -= 1;
     return best.subject;
   }
@@ -174,6 +192,10 @@ export function generateWeeklySlots(
       .map((b) => [toMin(b.start_time), toMin(b.end_time)] as const);
     const placed: Array<readonly [number, number]> = [];
     const usedToday = new Set<string>();
+    const maxDistinct =
+      input.subjectsPerDay && input.subjectsPerDay > 0
+        ? Math.min(input.subjectsPerDay, needed)
+        : needed;
 
     // نمشي ساعة بساعة من ساعة البدء ونحجز أول فراغ حر
     for (
@@ -188,7 +210,10 @@ export function generateWeeklySlots(
       );
       if (clash) continue;
 
-      const subject = pickSubject(usedToday);
+      const subject =
+        usedToday.size < maxDistinct
+          ? pickSubject(usedToday)
+          : pickFromToday(usedToday);
       if (!subject) break; // نفدت الحصص المخصّصة
 
       placed.push([s, e]);

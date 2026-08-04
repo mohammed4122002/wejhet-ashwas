@@ -122,6 +122,23 @@ const skewSlots = generateWeeklySlots(
 );
 ok("multi-subject day: 2 sessions → 2 distinct subjects (no early repeat)", new Set(skewSlots.map((s) => s.subject_id)).size === 2);
 
+// subjectsPerDay يحدّ التنويع لكن الساعات الفاضية تبقى الحاكم الأول
+const cappedSlots = generateWeeklySlots(
+  varietySubs,
+  { freeHoursByDay: [4, 0, 0, 0, 0, 0, 0], sessionLengthHours: 1, startHour: 16, subjectsPerDay: 2 },
+  false,
+  FROM
+);
+ok("subjectsPerDay=2 with 4 free hours → 4 slots but only 2 distinct subjects", cappedSlots.length === 4 && new Set(cappedSlots.map((s) => s.subject_id)).size === 2);
+
+const cappedByHoursSlots = generateWeeklySlots(
+  varietySubs,
+  { freeHoursByDay: [1, 0, 0, 0, 0, 0, 0], sessionLengthHours: 1, startHour: 16, subjectsPerDay: 3 },
+  false,
+  FROM
+);
+ok("subjectsPerDay=3 but only 1 free hour → hours still win (1 slot, 1 subject)", cappedByHoursSlots.length === 1 && new Set(cappedByHoursSlots.map((s) => s.subject_id)).size === 1);
+
 console.log("today generation:");
 const daySlots = [
   { id: "s1", user_id: "u", day_of_week: 6, start_time: "16:00", end_time: "17:00", title: "T1", subject_id: "a", is_recurring: true, created_at: null, updated_at: null },

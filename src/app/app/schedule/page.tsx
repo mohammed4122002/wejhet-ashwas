@@ -221,6 +221,7 @@ function GeneratorMode({
   const { autoScheduleApply } = useAppUser();
 
   const [hours, setHours] = useState<number[]>([3, 3, 3, 3, 3, 0, 3]);
+  const [subjectsPerDay, setSubjectsPerDay] = useState(3);
   const [draft, setDraft] = useState<GeneratedSlot[] | null>(null);
   const [applied, setApplied] = useState(false);
 
@@ -236,6 +237,7 @@ function GeneratorMode({
       schedulable,
       {
         freeHoursByDay: hours,
+        subjectsPerDay,
         sessionLengthHours: 1,
         startHour: 16,
         // نتجنّب التزامات الطالب الثابتة (مدرسة/دروس) — تُدار من الإعدادات
@@ -263,32 +265,52 @@ function GeneratorMode({
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-h3">كم مادة بدك الجدول يغطّيها كل يوم؟</CardTitle>
+          <CardTitle className="text-h3">جدولك الأسبوعي</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-secondary text-text-muted">
-            كل رقم = عدد المواد (الحصص) اللي بيحطّها جدولك بهالليوم — كل حصة ساعة
-            تقريباً، ونوزّعها على مواد مختلفة قدر الإمكان بدل ما نكرّر نفس المادة.
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-            {WEEKDAYS_AR.map((d, i) => (
-              <div key={i} className="flex flex-col gap-1.5">
-                <Label>{d}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={8}
-                  value={hours[i]}
-                  onChange={(e) => {
-                    const next = [...hours];
-                    next[i] = Math.max(0, Number(e.target.value) || 0);
-                    setHours(next);
-                  }}
-                  className="text-center"
-                />
-              </div>
-            ))}
+        <CardContent className="flex flex-col gap-5">
+          {/* عدد المواد باليوم */}
+          <div className="flex flex-col gap-1.5">
+            <Label>كم مادة بدك الجدول يغطّيها كل يوم؟</Label>
+            <Input
+              type="number"
+              min={1}
+              max={8}
+              value={subjectsPerDay}
+              onChange={(e) =>
+                setSubjectsPerDay(Math.max(1, Number(e.target.value) || 1))
+              }
+              className="w-24 text-center"
+            />
+            <p className="text-secondary text-text-muted">
+              نوزّع حصص كل يوم على هالعدد من المواد المختلفة، بحدود الساعات
+              الفاضية عندك تحت — لو الساعات أقل من عدد المواد، الساعات هي الحاكمة.
+            </p>
           </div>
+
+          {/* الساعات الفاضية لكل يوم */}
+          <div className="flex flex-col gap-1.5">
+            <Label>كم ساعة فاضية عندك كل يوم؟</Label>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+              {WEEKDAYS_AR.map((d, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <Label className="text-secondary text-text-muted">{d}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={12}
+                    value={hours[i]}
+                    onChange={(e) => {
+                      const next = [...hours];
+                      next[i] = Math.max(0, Number(e.target.value) || 0);
+                      setHours(next);
+                    }}
+                    className="text-center"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           {weighted && (
             <p className="text-secondary text-text-muted">
               النظام التلقائي يرجّح المواد حسب قرب الامتحان ونقاط الضعف.

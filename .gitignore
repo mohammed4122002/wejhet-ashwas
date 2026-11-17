@@ -42,3 +42,6 @@ next-env.d.ts
 /dist/
 .vinext/
 .cloudflare/
+
+# Local Cloudflare secret bundle (never commit)
+.worker-secrets

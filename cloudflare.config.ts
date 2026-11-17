@@ -1,6 +1,7 @@
 import { bindings, defineConfig, defineWorker, triggers } from "cf/config";
 
 export default defineConfig({
+  accountId: "135f6b9c44fbcdff3f0384bda0dad433",
   worker: defineWorker({
     name: "wejhet-ashwas",
     // Custom entrypoint keeps the Vinext HTTP handler and adds the scheduled() event.

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: cloudflare-vinext-migration-ci-v2
@@ -27,7 +27,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install existing project dependencies
+      - name: Install project dependencies
         run: npm ci
 
       - name: Report production dependency audit
@@ -46,19 +46,14 @@ jobs:
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
 
       - name: Validate Cloudflare deployment configuration (dry run)
-        run: |
-          cat > /tmp/worker-secrets <<'EOF'
-          SUPABASE_SERVICE_ROLE_KEY=ci-placeholder
-          OPENAI_API_KEY=ci-placeholder
-          VAPID_PRIVATE_KEY=ci-placeholder
-          VAPID_SUBJECT=mailto:ci@example.com
-          CRON_SECRET=ci-placeholder
-          ADMIN_EMAILS=ci@example.com
-          EOF
-          npx @vinext/cloudflare deploy --dry-run
+        run: npx @vinext/cloudflare deploy --dry-run
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
-
-          fi
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+          OPENAI_API_KEY: ci-placeholder
+          VAPID_PRIVATE_KEY: ci-placeholder
+          VAPID_SUBJECT: mailto:ci@example.com
+          CRON_SECRET: ci-placeholder
+          ADMIN_EMAILS: ci@example.com

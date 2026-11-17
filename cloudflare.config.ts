@@ -18,12 +18,9 @@ export default defineConfig({
       // Public values are supplied at build time and also exposed to server code.
       NEXT_PUBLIC_SUPABASE_URL: bindings.text(process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""),
       NEXT_PUBLIC_SUPABASE_ANON_KEY: bindings.text(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""),
-      NEXT_PUBLIC_VAPID_PUBLIC_KEY: bindings.text(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""),
       // Server-only credentials are required Worker secrets; never commit their values.
       SUPABASE_SERVICE_ROLE_KEY: bindings.secret(),
       OPENAI_API_KEY: bindings.secret(),
-      VAPID_PRIVATE_KEY: bindings.secret(),
-      VAPID_SUBJECT: bindings.secret(),
       CRON_SECRET: bindings.secret(),
       // ADMIN_EMAILS already exists as a plain Worker variable in production.
       ADMIN_EMAILS: bindings.text(process.env.ADMIN_EMAILS ?? ""),

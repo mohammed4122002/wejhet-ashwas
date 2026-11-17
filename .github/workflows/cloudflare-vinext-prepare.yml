@@ -63,6 +63,10 @@ jobs:
 
       - name: Build production Worker
         run: npm run build:vinext
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
 
       - name: Commit generated migration configuration
         run: |

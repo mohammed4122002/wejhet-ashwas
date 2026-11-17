@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Apply non-breaking dependency security updates
-        run: npm audit fix
+        run: npm audit fix || echo 'Some advisories require manual review or a major version update.'
 
       - name: Report production dependency audit
         run: |

@@ -7,7 +7,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: cloudflare-vinext-migration-ci
+  cancel-in-progress: false
 
 jobs:
   compatibility:
@@ -26,10 +30,13 @@ jobs:
       - name: Install existing project dependencies
         run: npm ci
 
+      - name: Apply non-breaking dependency security updates
+        run: npm audit fix
+
       - name: Report production dependency audit
         run: |
           npm audit --omit=dev --json > /tmp/npm-audit.json || true
-          node -e 'const a=require("/tmp/npm-audit.json"); console.log("Production audit summary:", JSON.stringify(a.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(a.vulnerabilities ?? {})) console.log(name, "|", v.severity, "| direct:", v.isDirect, "| fix:", JSON.stringify(v.fixAvailable));'
+          node -e 'const a=require("/tmp/npm-audit.json"); console.log("Production audit summary:", JSON.stringify(a.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(a.vulnerabilities ?? {})) console.log(name, "|", v.severity, "| direct:", v.isDirect, "| range:", v.range, "| via:", JSON.stringify(v.via), "| fix:", JSON.stringify(v.fixAvailable));'
 
       - name: Run the official vinext compatibility check
         run: npx --yes vinext check
@@ -48,6 +55,18 @@ jobs:
           ADMIN_EMAILS=ci@example.com
           EOF
           npx cf deploy --prebuilt --dry-run --mode production --secrets-file /tmp/worker-secrets
+
+      - name: Commit safe lockfile security updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "No safe lockfile updates were needed."
+          else
+            git commit -m "Apply non-breaking dependency security updates"
+            git push origin HEAD:cloudflare/vinext-migration
+          fi
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key

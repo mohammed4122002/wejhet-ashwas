@@ -16,7 +16,7 @@ concurrency:
 jobs:
   compatibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out migration branch
         uses: actions/checkout@v4
@@ -43,6 +43,10 @@ jobs:
 
       - name: Build the Cloudflare Worker including scheduled entrypoint
         run: npm run build:vinext
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
 
       - name: Validate Cloudflare deployment configuration (dry run)
         run: |
@@ -55,6 +59,10 @@ jobs:
           ADMIN_EMAILS=ci@example.com
           EOF
           npx cf deploy --prebuilt --dry-run --mode production --secrets-file /tmp/worker-secrets
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
 
       - name: Commit safe lockfile security updates
         run: |
@@ -67,11 +75,3 @@ jobs:
             git commit -m "Apply non-breaking dependency security updates"
             git push origin HEAD:cloudflare/vinext-migration
           fi
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI

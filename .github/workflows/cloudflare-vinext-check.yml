@@ -58,7 +58,7 @@ jobs:
           CRON_SECRET=ci-placeholder
           ADMIN_EMAILS=ci@example.com
           EOF
-          npx cf deploy --prebuilt --dry-run --mode production --secrets-file /tmp/worker-secrets
+          npx @vinext/cloudflare deploy --dry-run
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key

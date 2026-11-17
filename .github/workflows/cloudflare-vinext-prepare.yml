@@ -33,6 +33,16 @@ jobs:
       - name: Install existing dependencies
         run: npm ci
 
+      - name: Align Next.js and React with vinext requirements
+        run: >-
+          npm install
+          next@15.5.29
+          react@19.3.1
+          react-dom@19.3.1
+          @types/react@^19
+          @types/react-dom@^19
+          eslint-config-next@15.5.29
+
       - name: Initialize vinext for Cloudflare Workers
         run: >-
           npx --yes vinext init

@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: cloudflare-vinext-migration-ci
+  group: cloudflare-vinext-migration-ci-v2
   cancel-in-progress: false
 
 jobs:
@@ -29,9 +29,6 @@ jobs:
 
       - name: Install existing project dependencies
         run: npm ci
-
-      - name: Apply non-breaking dependency security updates
-        run: npm audit fix || echo 'Some advisories require manual review or a major version update.'
 
       - name: Report production dependency audit
         run: |
@@ -64,14 +61,4 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
 
-      - name: Commit safe lockfile security updates
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          if git diff --cached --quiet; then
-            echo "No safe lockfile updates were needed."
-          else
-            git commit -m "Apply non-breaking dependency security updates"
-            git push origin HEAD:cloudflare/vinext-migration
           fi

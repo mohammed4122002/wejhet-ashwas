@@ -28,3 +28,6 @@ jobs:
 
       - name: Run the official vinext compatibility check
         run: npx --yes vinext check
+
+      - name: Build the Cloudflare Worker including scheduled entrypoint
+        run: npm run build:vinext

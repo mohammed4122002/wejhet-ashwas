@@ -6,6 +6,14 @@ on:
       - cloudflare/vinext-migration
     paths:
       - ".github/workflows/cloudflare-vinext-prepare.yml"
+      - "cloudflare.config.ts"
+      - "vite.config.ts"
+      - "worker/**"
+      - "src/app/api/**"
+      - "src/lib/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
   workflow_dispatch:
 
 permissions:

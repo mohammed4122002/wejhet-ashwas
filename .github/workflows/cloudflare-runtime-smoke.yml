@@ -1,0 +1,88 @@
+name: Cloudflare Workers runtime smoke test
+
+on:
+  push:
+    branches:
+      - cloudflare/vinext-migration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out migration branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Provide disposable local-only bindings
+        run: |
+          cat > .dev.vars <<'EOF'
+          SUPABASE_SERVICE_ROLE_KEY=local-placeholder
+          OPENAI_API_KEY=local-placeholder
+          VAPID_PRIVATE_KEY=local-placeholder
+          VAPID_SUBJECT=mailto:ci@example.com
+          CRON_SECRET=local-placeholder
+          ADMIN_EMAILS=ci@example.com
+          EOF
+
+      - name: Build Worker
+        run: npm run build:vinext
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
+
+      - name: Start local Workers runtime and smoke-test routes
+        shell: bash
+        run: |
+          npm run start:vinext -- --host 127.0.0.1 > /tmp/vinext-preview.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:4173/ -o /tmp/home.html; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/vinext-preview.log
+            echo "Local Workers preview did not become ready."
+            exit 1
+          fi
+
+          node --input-type=module <<'NODE'
+          const checks = [
+            ["/", 200],
+            ["/api/smart-extract", 403, "POST"],
+            ["/api/cron/time-capsule-unlock", 401],
+            ["/api/time-capsule", 401],
+            ["/api/push/subscribe", 401, "POST"],
+            ["/api/push/unsubscribe", 401, "POST"],
+          ];
+
+          for (const [path, expected, method = "GET"] of checks) {
+            const response = await fetch(`http://127.0.0.1:4173${path}`, { method });
+            console.log(`${method} ${path}: ${response.status} (expected ${expected})`);
+            if (response.status !== expected) {
+              const body = await response.text();
+              throw new Error(`Unexpected response for ${path}: ${response.status} ${body.slice(0, 500)}`);
+            }
+          }
+          console.log("All local Workers runtime smoke tests passed.");
+          NODE

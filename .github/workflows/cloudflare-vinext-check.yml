@@ -1,0 +1,30 @@
+name: Cloudflare vinext compatibility check
+
+on:
+  push:
+    branches:
+      - cloudflare/vinext-migration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out migration branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install existing project dependencies
+        run: npm ci
+
+      - name: Run the official vinext compatibility check
+        run: npx --yes vinext check

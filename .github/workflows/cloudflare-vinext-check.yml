@@ -26,6 +26,11 @@ jobs:
       - name: Install existing project dependencies
         run: npm ci
 
+      - name: Report production dependency audit
+        run: |
+          npm audit --omit=dev --json > /tmp/npm-audit.json || true
+          node -e 'const a=require("/tmp/npm-audit.json"); console.log("Production audit summary:", JSON.stringify(a.metadata?.vulnerabilities ?? {})); for (const [name,v] of Object.entries(a.vulnerabilities ?? {})) console.log(name, "|", v.severity, "| direct:", v.isDirect, "| fix:", JSON.stringify(v.fixAvailable));'
+
       - name: Run the official vinext compatibility check
         run: npx --yes vinext check
 

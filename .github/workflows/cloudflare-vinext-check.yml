@@ -36,6 +36,22 @@ jobs:
 
       - name: Build the Cloudflare Worker including scheduled entrypoint
         run: npm run build:vinext
+
+      - name: Validate Cloudflare deployment configuration (dry run)
+        run: |
+          cat > /tmp/worker-secrets <<'EOF'
+          SUPABASE_SERVICE_ROLE_KEY=ci-placeholder
+          OPENAI_API_KEY=ci-placeholder
+          VAPID_PRIVATE_KEY=ci-placeholder
+          VAPID_SUBJECT=mailto:ci@example.com
+          CRON_SECRET=ci-placeholder
+          ADMIN_EMAILS=ci@example.com
+          EOF
+          npx cf deploy --prebuilt --dry-run --mode production --secrets-file /tmp/worker-secrets
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BElhY2ktcGxhY2Vob2xkZXI
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
